@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.1
+// HMStudio Sliding Cart v1.0.2
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -22,7 +22,6 @@
     }
   
     const SlidingCart = {
-      settings: null,
       cartElement: null,
       isOpen: false,
   
@@ -45,6 +44,10 @@
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
   
+        // Get theme colors
+        const themeColor = getComputedStyle(document.documentElement)
+          .getPropertyValue('--theme-primary').trim() || '#00b286';
+  
         // Create cart container
         const container = document.createElement('div');
         container.id = 'hmstudio-sliding-cart';
@@ -52,12 +55,11 @@
           position: fixed;
           top: 0;
           ${isRTL ? 'right' : 'left'}: 100%;
-          width: ${this.settings.width}px;
+          width: 400px;
           height: 100vh;
-          background: ${this.settings.backgroundColor};
-          color: ${this.settings.textColor};
+          background: #fff;
           box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-          transition: transform ${this.settings.animationSpeed}ms ease;
+          transition: transform 300ms ease;
           z-index: 999999;
           display: flex;
           flex-direction: column;
@@ -77,7 +79,7 @@
         title.textContent = currentLang === 'ar' ? 'سلة التسوق' : 'Shopping Cart';
         title.style.cssText = `
           margin: 0;
-          font-size: 1.5rem;
+          font-size: 1.25rem;
           font-weight: bold;
         `;
   
@@ -86,11 +88,14 @@
         closeButton.style.cssText = `
           background: none;
           border: none;
-          font-size: 1.5rem;
+          font-size: 1.25rem;
           cursor: pointer;
           padding: 5px;
-          color: inherit;
+          opacity: 0.6;
+          transition: opacity 0.3s;
         `;
+        closeButton.addEventListener('mouseover', () => closeButton.style.opacity = '1');
+        closeButton.addEventListener('mouseout', () => closeButton.style.opacity = '0.6');
         closeButton.addEventListener('click', () => this.closeCart());
   
         header.appendChild(title);
@@ -128,20 +133,24 @@
           background: rgba(0, 0, 0, 0.5);
           opacity: 0;
           visibility: hidden;
-          transition: opacity ${this.settings.animationSpeed}ms ease;
+          transition: opacity 300ms ease;
           z-index: 999998;
         `;
   
-        if (this.settings.closeOnBackdropClick) {
-          backdrop.addEventListener('click', () => this.closeCart());
-        }
+        backdrop.addEventListener('click', () => this.closeCart());
   
         // Add to DOM
         document.body.appendChild(backdrop);
         document.body.appendChild(container);
   
-        this.cartElement = container;
-        return { container, content, footer, backdrop };
+        this.cartElement = {
+          container,
+          content,
+          footer,
+          backdrop
+        };
+  
+        return this.cartElement;
       },
   
       async fetchCartData() {
@@ -209,7 +218,7 @@
         name.textContent = item.product.name[currentLang];
         name.style.cssText = `
           margin: 0;
-          font-size: 1rem;
+          font-size: 0.9rem;
           font-weight: 500;
         `;
   
@@ -312,7 +321,7 @@
           font-weight: bold;
         `;
         subtotal.innerHTML = `
-          <span>${currentLang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+          <span>${currentLang === 'ar' ? 'المجموع' : 'Subtotal'}</span>
           <span>${cartData.formatted_subtotal}</span>
         `;
   
@@ -383,9 +392,9 @@
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
         
-        this.cartElement.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
-        document.getElementById('hmstudio-sliding-cart-backdrop').style.opacity = '1';
-        document.getElementById('hmstudio-sliding-cart-backdrop').style.visibility = 'visible';
+        this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
+        this.cartElement.backdrop.style.opacity = '1';
+        this.cartElement.backdrop.style.visibility = 'visible';
         document.body.style.overflow = 'hidden';
         this.isOpen = true;
   
@@ -395,11 +404,31 @@
       closeCart() {
         if (!this.isOpen) return;
   
-        this.cartElement.style.transform = 'translateX(0)';
-        document.getElementById('hmstudio-sliding-cart-backdrop').style.opacity = '0';
-        document.getElementById('hmstudio-sliding-cart-backdrop').style.visibility = 'hidden';
+        this.cartElement.container.style.transform = 'translateX(0)';
+        this.cartElement.backdrop.style.opacity = '0';
+        this.cartElement.backdrop.style.visibility = 'hidden';
         document.body.style.overflow = '';
         this.isOpen = false;
+      },
+  
+      handleCartUpdates() {
+        // Override the original cart add function to show sliding cart
+        const originalAddProduct = zid.store.cart.addProduct;
+        zid.store.cart.addProduct = async (...args) => {
+          try {
+            const result = await originalAddProduct.apply(zid.store.cart, args);
+            if (result.status === 'success') {
+              setTimeout(() => {
+                this.openCart();
+                this.updateCartDisplay();
+              }, 100);
+            }
+            return result;
+          } catch (error) {
+            console.error('Error in cart add:', error);
+            throw error;
+          }
+        };
       },
   
       setupCartButton() {
@@ -407,6 +436,7 @@
         cartButtons.forEach(button => {
           button.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.openCart();
           });
         });
@@ -416,8 +446,8 @@
         console.log('Initializing Sliding Cart');
         
         // Fetch settings
-        this.settings = await this.fetchSettings();
-        if (!this.settings?.enabled) {
+        const settings = await this.fetchSettings();
+        if (!settings?.enabled) {
           console.log('Sliding Cart is disabled');
           return;
         }
@@ -425,16 +455,13 @@
         // Create cart structure
         this.createCartStructure();
   
-        // Setup cart button
+        // Setup cart functionality
+        this.handleCartUpdates();
         this.setupCartButton();
   
         // Setup mutation observer for dynamically added cart buttons
-        const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            if (mutation.type === 'childList') {
-              this.setupCartButton();
-            }
-          });
+        const observer = new MutationObserver(() => {
+          this.setupCartButton();
         });
   
         observer.observe(document.body, {
