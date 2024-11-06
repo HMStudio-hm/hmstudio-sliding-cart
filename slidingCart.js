@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.5
+// HMStudio Sliding Cart v1.0.6
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -226,41 +226,58 @@
       
         // Price container
         const priceContainer = document.createElement('div');
-        priceContainer.style.cssText = `
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        `;
-      
-        // Sale price (if exists)
-        if (item.formatted_sale_price || item.sale_price) {
-          const salePrice = document.createElement('div');
-          salePrice.textContent = item.formatted_sale_price || item.sale_price;
-          salePrice.style.cssText = `
-            font-weight: bold;
-            color: var(--theme-primary, #00b286);
-          `;
-          priceContainer.appendChild(salePrice);
-      
-          // Original price
-          const originalPrice = document.createElement('div');
-          originalPrice.textContent = item.formatted_regular_price || item.regular_price || item.formatted_price || item.price;
-          originalPrice.style.cssText = `
-            text-decoration: line-through;
-            color: #999;
-            font-size: 0.9em;
-          `;
-          priceContainer.appendChild(originalPrice);
-        } else {
-          // Regular price only
-          const price = document.createElement('div');
-          price.textContent = item.formatted_price || item.price;
-          price.style.cssText = `
-            font-weight: bold;
-            color: var(--theme-primary, #00b286);
-          `;
-          priceContainer.appendChild(price);
-        }
+priceContainer.style.cssText = `
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+// Function to format price with currency
+const formatPrice = (price) => {
+  if (typeof price === 'number') {
+    return `${price.toFixed(2)} SAR`;
+  }
+  return price;
+};
+
+// Check if item has sale price
+if (item.sale_price && item.price && item.sale_price !== item.price) {
+  // Sale price
+  const salePrice = document.createElement('div');
+  salePrice.textContent = formatPrice(item.sale_price);
+  salePrice.style.cssText = `
+    font-weight: bold;
+    color: var(--theme-primary, #00b286);
+  `;
+  priceContainer.appendChild(salePrice);
+
+  // Original price
+  const originalPrice = document.createElement('div');
+  originalPrice.textContent = formatPrice(item.price);
+  originalPrice.style.cssText = `
+    text-decoration: line-through;
+    color: #999;
+    font-size: 0.9em;
+  `;
+  priceContainer.appendChild(originalPrice);
+} else {
+  // Regular price only
+  const price = document.createElement('div');
+  price.textContent = formatPrice(item.price);
+  price.style.cssText = `
+    font-weight: bold;
+    color: var(--theme-primary, #00b286);
+  `;
+  priceContainer.appendChild(price);
+}
+
+// Add debugging to help track price data
+console.log('Item price data:', {
+  price: item.price,
+  sale_price: item.sale_price,
+  formatted_price: item.formatted_price,
+  formatted_sale_price: item.formatted_sale_price
+});
       
         // Quantity controls
         const quantityControls = document.createElement('div');
@@ -352,9 +369,11 @@
           justify-content: space-between;
           font-weight: bold;
         `;
+        
+        // Use the value_string from total object which includes the currency
         subtotal.innerHTML = `
           <span>${currentLang === 'ar' ? 'المجموع' : 'Subtotal'}</span>
-          <span>${cartData.formatted_total || cartData.total}</span>
+          <span>${cartData.total.value_string || '0.00 SAR'}</span>
         `;
       
         // Checkout button
