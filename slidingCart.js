@@ -1,6 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.3
-// Sliding Cart implementation for Zid Stores
+// HMStudio Sliding Cart v1.0.4
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -44,6 +43,10 @@
       createCartStructure() {
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
+  
+        // Get theme colors
+        const themeColor = getComputedStyle(document.documentElement)
+          .getPropertyValue('--theme-primary').trim() || '#00b286';
   
         // Create cart container
         const container = document.createElement('div');
@@ -150,6 +153,19 @@
         return this.cartElement;
       },
   
+      async fetchCartData() {
+        try {
+          const response = await zid.store.cart.fetch();
+          if (response.status === 'success') {
+            return response.data.cart;
+          }
+          throw new Error('Failed to fetch cart data');
+        } catch (error) {
+          console.error('Error fetching cart:', error);
+          return null;
+        }
+      },
+  
       async updateItemQuantity(cartProductId, productId, newQuantity) {
         try {
           await zid.store.cart.updateProduct(cartProductId, newQuantity, productId);
@@ -169,6 +185,8 @@
       },
   
       createCartItem(item, currentLang) {
+        console.log('Creating cart item with:', item); // Debug log
+        
         const itemElement = document.createElement('div');
         itemElement.style.cssText = `
           display: flex;
@@ -176,18 +194,18 @@
           padding: 15px 0;
           border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         `;
-  
-        // Product image with safe checks
+      
+        // Product image - Use thumbnail or main_image from the API response
         const image = document.createElement('img');
-        image.src = item.product?.image || item.image || 'https://via.placeholder.com/80';
-        image.alt = item.product?.name?.[currentLang] || 'Product';
+        image.src = item.thumbnail || item.main_image || '/path/to/default-image.jpg';
+        image.alt = item.name || '';
         image.style.cssText = `
           width: 80px;
           height: 80px;
           object-fit: cover;
           border-radius: 4px;
         `;
-  
+      
         // Product details container
         const details = document.createElement('div');
         details.style.cssText = `
@@ -196,24 +214,24 @@
           flex-direction: column;
           gap: 5px;
         `;
-  
-        // Product name with safe check
+      
+        // Product name
         const name = document.createElement('h3');
-        name.textContent = item.product?.name?.[currentLang] || item.name || 'Product';
+        name.textContent = item.name || ''; // The name might be directly on the item
         name.style.cssText = `
           margin: 0;
           font-size: 0.9rem;
           font-weight: 500;
         `;
-  
+      
         // Price
         const price = document.createElement('div');
-        price.textContent = item.formatted_price;
+        price.textContent = item.formatted_price || item.price;
         price.style.cssText = `
           font-weight: bold;
           color: var(--theme-primary, #00b286);
         `;
-  
+      
         // Quantity controls
         const quantityControls = document.createElement('div');
         quantityControls.style.cssText = `
@@ -222,7 +240,7 @@
           gap: 10px;
           margin-top: auto;
         `;
-  
+      
         const createButton = (text, onClick) => {
           const btn = document.createElement('button');
           btn.textContent = text;
@@ -241,20 +259,20 @@
           btn.addEventListener('click', onClick);
           return btn;
         };
-  
+      
         const decreaseBtn = createButton('-', () => {
           if (item.quantity > 1) {
-            this.updateItemQuantity(item.id, item.product_id, item.quantity - 1);
+            this.updateItemQuantity(item.cart_id || item.id, item.product_id, item.quantity - 1);
           }
         });
-  
+      
         const quantity = document.createElement('span');
         quantity.textContent = item.quantity;
-  
+      
         const increaseBtn = createButton('+', () => {
-          this.updateItemQuantity(item.id, item.product_id, item.quantity + 1);
+          this.updateItemQuantity(item.cart_id || item.id, item.product_id, item.quantity + 1);
         });
-  
+      
         // Remove button
         const removeBtn = document.createElement('button');
         removeBtn.innerHTML = '🗑️';
@@ -268,24 +286,24 @@
           opacity: 0.7;
         `;
         removeBtn.addEventListener('click', () => {
-          this.removeItem(item.id, item.product_id);
+          this.removeItem(item.cart_id || item.id, item.product_id);
         });
-  
+      
         // Assemble quantity controls
         quantityControls.appendChild(decreaseBtn);
         quantityControls.appendChild(quantity);
         quantityControls.appendChild(increaseBtn);
-  
+      
         // Assemble details
         details.appendChild(name);
         details.appendChild(price);
         details.appendChild(quantityControls);
-  
+      
         // Assemble item
         itemElement.appendChild(image);
         itemElement.appendChild(details);
         itemElement.appendChild(removeBtn);
-  
+      
         return itemElement;
       },
   
@@ -340,69 +358,52 @@
       },
   
       async updateCartDisplay() {
-        try {
-          console.log('Updating cart display...');
-          
-          // Fetch fresh cart data
-          const response = await zid.store.cart.fetch();
-          console.log('Cart fetch response:', response);
-          
-          if (!response || response.status !== 'success') {
-            console.error('Failed to fetch cart data');
-            return;
-          }
-  
-          const cartData = response.data.cart;
-          const currentLang = getCurrentLanguage();
-          const { content, footer } = this.cartElement;
-  
-          // Update content
-          content.innerHTML = '';
-          
-          if (!cartData.products || cartData.products.length === 0) {
-            const emptyMessage = document.createElement('div');
-            emptyMessage.style.cssText = `
-              text-align: center;
-              padding: 40px 20px;
-              color: rgba(0, 0, 0, 0.5);
-            `;
-            emptyMessage.textContent = currentLang === 'ar' 
-              ? 'سلة التسوق فارغة' 
-              : 'Your cart is empty';
-            content.appendChild(emptyMessage);
-          } else {
-            cartData.products.forEach(item => {
-              if (item) { // Add null check
-                content.appendChild(this.createCartItem(item, currentLang));
-              }
-            });
-          }
-  
-          // Update footer
-          footer.innerHTML = '';
-          footer.appendChild(this.createFooterContent(cartData, currentLang));
-          
-          console.log('Cart display updated successfully');
-        } catch (error) {
-          console.error('Error updating cart display:', error);
+        const cartData = await this.fetchCartData();
+        if (!cartData) return;
+      
+        console.log('Cart data received:', cartData); // Debug log
+      
+        const currentLang = getCurrentLanguage();
+        const { content, footer } = this.cartElement;
+      
+        // Update content
+        content.innerHTML = '';
+        if (!cartData.products || cartData.products.length === 0) {
+          const emptyMessage = document.createElement('div');
+          emptyMessage.style.cssText = `
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(0, 0, 0, 0.5);
+          `;
+          emptyMessage.textContent = currentLang === 'ar' 
+            ? 'سلة التسوق فارغة' 
+            : 'Your cart is empty';
+          content.appendChild(emptyMessage);
+        } else {
+          cartData.products.forEach(item => {
+            console.log('Processing cart item:', item); // Debug log
+            content.appendChild(this.createCartItem(item, currentLang));
+          });
         }
+      
+        // Update footer
+        footer.innerHTML = '';
+        footer.appendChild(this.createFooterContent(cartData, currentLang));
       },
   
-      async openCart() {
+      openCart() {
+        if (this.isOpen) return;
+        
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
         
-        if (!this.isOpen) {
-          // Only update UI if cart isn't already open
-          this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
-          this.cartElement.backdrop.style.opacity = '1';
-          this.cartElement.backdrop.style.visibility = 'visible';
-          document.body.style.overflow = 'hidden';
-          this.isOpen = true;
-        }
+        this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
+        this.cartElement.backdrop.style.opacity = '1';
+        this.cartElement.backdrop.style.visibility = 'visible';
+        document.body.style.overflow = 'hidden';
+        this.isOpen = true;
   
-        // Always update the display
-        await this.updateCartDisplay();
+        this.updateCartDisplay();
       },
   
       closeCart() {
@@ -416,38 +417,33 @@
       },
   
       handleCartUpdates() {
+        // Override the original cart add function to show sliding cart
         const originalAddProduct = zid.store.cart.addProduct;
-        
         zid.store.cart.addProduct = async (...args) => {
           try {
             const result = await originalAddProduct.apply(zid.store.cart, args);
-            
             if (result.status === 'success') {
-              // Just open the cart - it will fetch data when opening
-              this.openCart();
+              setTimeout(() => {
+                this.openCart();
+                this.updateCartDisplay();
+              }, 100);
             }
-            
             return result;
           } catch (error) {
-            console.error('Error handling cart update:', error);
+            console.error('Error in cart add:', error);
             throw error;
           }
         };
       },
   
-      handleCartClick(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.openCart();
-      },
-  
       setupCartButton() {
         const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
         cartButtons.forEach(button => {
-          // Remove any existing click listeners
-          button.removeEventListener('click', this.handleCartClick);
-          // Add new click listener
-          button.addEventListener('click', this.handleCartClick.bind(this));
+          button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.openCart();
+          });
         });
       },
   
