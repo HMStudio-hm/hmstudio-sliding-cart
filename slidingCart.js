@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.4
+// HMStudio Sliding Cart v1.0.5
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -195,7 +195,7 @@
           border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         `;
       
-        // Product image - Use thumbnail or main_image from the API response
+        // Product image
         const image = document.createElement('img');
         image.src = item.thumbnail || item.main_image || '/path/to/default-image.jpg';
         image.alt = item.name || '';
@@ -217,20 +217,50 @@
       
         // Product name
         const name = document.createElement('h3');
-        name.textContent = item.name || ''; // The name might be directly on the item
+        name.textContent = item.name || '';
         name.style.cssText = `
           margin: 0;
           font-size: 0.9rem;
           font-weight: 500;
         `;
       
-        // Price
-        const price = document.createElement('div');
-        price.textContent = item.formatted_price || item.price;
-        price.style.cssText = `
-          font-weight: bold;
-          color: var(--theme-primary, #00b286);
+        // Price container
+        const priceContainer = document.createElement('div');
+        priceContainer.style.cssText = `
+          display: flex;
+          align-items: center;
+          gap: 8px;
         `;
+      
+        // Sale price (if exists)
+        if (item.formatted_sale_price || item.sale_price) {
+          const salePrice = document.createElement('div');
+          salePrice.textContent = item.formatted_sale_price || item.sale_price;
+          salePrice.style.cssText = `
+            font-weight: bold;
+            color: var(--theme-primary, #00b286);
+          `;
+          priceContainer.appendChild(salePrice);
+      
+          // Original price
+          const originalPrice = document.createElement('div');
+          originalPrice.textContent = item.formatted_regular_price || item.regular_price || item.formatted_price || item.price;
+          originalPrice.style.cssText = `
+            text-decoration: line-through;
+            color: #999;
+            font-size: 0.9em;
+          `;
+          priceContainer.appendChild(originalPrice);
+        } else {
+          // Regular price only
+          const price = document.createElement('div');
+          price.textContent = item.formatted_price || item.price;
+          price.style.cssText = `
+            font-weight: bold;
+            color: var(--theme-primary, #00b286);
+          `;
+          priceContainer.appendChild(price);
+        }
       
         // Quantity controls
         const quantityControls = document.createElement('div');
@@ -296,7 +326,7 @@
       
         // Assemble details
         details.appendChild(name);
-        details.appendChild(price);
+        details.appendChild(priceContainer);
         details.appendChild(quantityControls);
       
         // Assemble item
@@ -314,7 +344,7 @@
           flex-direction: column;
           gap: 15px;
         `;
-  
+      
         // Subtotal
         const subtotal = document.createElement('div');
         subtotal.style.cssText = `
@@ -324,9 +354,9 @@
         `;
         subtotal.innerHTML = `
           <span>${currentLang === 'ar' ? 'المجموع' : 'Subtotal'}</span>
-          <span>${cartData.formatted_subtotal}</span>
+          <span>${cartData.formatted_total || cartData.total}</span>
         `;
-  
+      
         // Checkout button
         const checkoutBtn = document.createElement('button');
         checkoutBtn.textContent = currentLang === 'ar' ? 'إتمام الطلب' : 'Checkout';
@@ -348,12 +378,12 @@
           checkoutBtn.style.opacity = '1';
         });
         checkoutBtn.addEventListener('click', () => {
-          window.location.href = '/cart/checkout';
+          window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
         });
-  
+      
         footer.appendChild(subtotal);
         footer.appendChild(checkoutBtn);
-  
+      
         return footer;
       },
   
