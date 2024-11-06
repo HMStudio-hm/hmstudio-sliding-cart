@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.0 v5
+// HMStudio Sliding Cart v1.0.1
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -22,9 +22,9 @@
     }
   
     const SlidingCart = {
+      settings: null,
       cartElement: null,
       isOpen: false,
-      currentCartData: null,
   
       async fetchSettings() {
         try {
@@ -52,11 +52,12 @@
           position: fixed;
           top: 0;
           ${isRTL ? 'right' : 'left'}: 100%;
-          width: 400px;
+          width: ${this.settings.width}px;
           height: 100vh;
-          background: #fff;
+          background: ${this.settings.backgroundColor};
+          color: ${this.settings.textColor};
           box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-          transition: transform 300ms ease;
+          transition: transform ${this.settings.animationSpeed}ms ease;
           z-index: 999999;
           display: flex;
           flex-direction: column;
@@ -76,7 +77,7 @@
         title.textContent = currentLang === 'ar' ? 'سلة التسوق' : 'Shopping Cart';
         title.style.cssText = `
           margin: 0;
-          font-size: 1.25rem;
+          font-size: 1.5rem;
           font-weight: bold;
         `;
   
@@ -85,14 +86,11 @@
         closeButton.style.cssText = `
           background: none;
           border: none;
-          font-size: 1.25rem;
+          font-size: 1.5rem;
           cursor: pointer;
           padding: 5px;
-          opacity: 0.6;
-          transition: opacity 0.3s;
+          color: inherit;
         `;
-        closeButton.addEventListener('mouseover', () => closeButton.style.opacity = '1');
-        closeButton.addEventListener('mouseout', () => closeButton.style.opacity = '0.6');
         closeButton.addEventListener('click', () => this.closeCart());
   
         header.appendChild(title);
@@ -130,24 +128,33 @@
           background: rgba(0, 0, 0, 0.5);
           opacity: 0;
           visibility: hidden;
-          transition: opacity 300ms ease;
+          transition: opacity ${this.settings.animationSpeed}ms ease;
           z-index: 999998;
         `;
   
-        backdrop.addEventListener('click', () => this.closeCart());
+        if (this.settings.closeOnBackdropClick) {
+          backdrop.addEventListener('click', () => this.closeCart());
+        }
   
         // Add to DOM
         document.body.appendChild(backdrop);
         document.body.appendChild(container);
   
-        this.cartElement = {
-          container,
-          content,
-          footer,
-          backdrop
-        };
+        this.cartElement = container;
+        return { container, content, footer, backdrop };
+      },
   
-        return this.cartElement;
+      async fetchCartData() {
+        try {
+          const response = await zid.store.cart.fetch();
+          if (response.status === 'success') {
+            return response.data.cart;
+          }
+          throw new Error('Failed to fetch cart data');
+        } catch (error) {
+          console.error('Error fetching cart:', error);
+          return null;
+        }
       },
   
       async updateItemQuantity(cartProductId, productId, newQuantity) {
@@ -202,7 +209,7 @@
         name.textContent = item.product.name[currentLang];
         name.style.cssText = `
           margin: 0;
-          font-size: 0.9rem;
+          font-size: 1rem;
           font-weight: 500;
         `;
   
@@ -305,7 +312,7 @@
           font-weight: bold;
         `;
         subtotal.innerHTML = `
-          <span>${currentLang === 'ar' ? 'المجموع' : 'Subtotal'}</span>
+          <span>${currentLang === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
           <span>${cartData.formatted_subtotal}</span>
         `;
   
@@ -340,142 +347,67 @@
       },
   
       async updateCartDisplay() {
-        try {
-          console.log('Updating cart display...');
-          
-          // Fetch fresh cart data
-          const response = await zid.store.cart.fetch();
-          console.log('Cart fetch response:', response);
-          
-          if (!response || response.status !== 'success') {
-            console.error('Failed to fetch cart data');
-            return;
-          }
+        const cartData = await this.fetchCartData();
+        if (!cartData) return;
   
-          const cartData = response.data.cart;
-          const currentLang = getCurrentLanguage();
-          const { content, footer } = this.cartElement;
+        const currentLang = getCurrentLanguage();
+        const { content, footer } = this.cartElement;
   
-          // Update content
-          content.innerHTML = '';
-          
-          if (!cartData.products || cartData.products.length === 0) {
-            const emptyMessage = document.createElement('div');
-            emptyMessage.style.cssText = `
-              text-align: center;
-              padding: 40px 20px;
-              color: rgba(0, 0, 0, 0.5);
-            `;
-            emptyMessage.textContent = currentLang === 'ar' 
-              ? 'سلة التسوق فارغة' 
-              : 'Your cart is empty';
-            content.appendChild(emptyMessage);
-          } else {
-            cartData.products.forEach(item => {
-              content.appendChild(this.createCartItem(item, currentLang));
-            });
-          }
-  
-          // Update footer
-          footer.innerHTML = '';
-          footer.appendChild(this.createFooterContent(cartData, currentLang));
-          
-          console.log('Cart display updated successfully');
-        } catch (error) {
-          console.error('Error updating cart display:', error);
+        // Update content
+        content.innerHTML = '';
+        if (cartData.products.length === 0) {
+          const emptyMessage = document.createElement('div');
+          emptyMessage.style.cssText = `
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(0, 0, 0, 0.5);
+          `;
+          emptyMessage.textContent = currentLang === 'ar' 
+            ? 'سلة التسوق فارغة' 
+            : 'Your cart is empty';
+          content.appendChild(emptyMessage);
+        } else {
+          cartData.products.forEach(item => {
+            content.appendChild(this.createCartItem(item, currentLang));
+          });
         }
+  
+        // Update footer
+        footer.innerHTML = '';
+        footer.appendChild(this.createFooterContent(cartData, currentLang));
       },
   
-      async openCart() {
-        if (this.isOpen) {
-          // Even if cart is open, fetch fresh data
-          await this.updateCartDisplay();
-          return;
-        }
+      openCart() {
+        if (this.isOpen) return;
         
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
         
-        // Show cart UI first
-        this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
-        this.cartElement.backdrop.style.opacity = '1';
-        this.cartElement.backdrop.style.visibility = 'visible';
+        this.cartElement.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
+        document.getElementById('hmstudio-sliding-cart-backdrop').style.opacity = '1';
+        document.getElementById('hmstudio-sliding-cart-backdrop').style.visibility = 'visible';
         document.body.style.overflow = 'hidden';
         this.isOpen = true;
   
-        // Then fetch and display cart data
-        await this.updateCartDisplay();
+        this.updateCartDisplay();
       },
   
       closeCart() {
         if (!this.isOpen) return;
   
-        this.cartElement.container.style.transform = 'translateX(0)';
-        this.cartElement.backdrop.style.opacity = '0';
-        this.cartElement.backdrop.style.visibility = 'hidden';
+        this.cartElement.style.transform = 'translateX(0)';
+        document.getElementById('hmstudio-sliding-cart-backdrop').style.opacity = '0';
+        document.getElementById('hmstudio-sliding-cart-backdrop').style.visibility = 'hidden';
         document.body.style.overflow = '';
         this.isOpen = false;
-      },
-  
-      handleCartUpdates() {
-        // Store the original addProduct function
-        const originalAddProduct = zid.store.cart.addProduct;
-        
-        // Override the addProduct function
-        zid.store.cart.addProduct = async (...args) => {
-          try {
-            // Call the original function first
-            const result = await originalAddProduct.apply(zid.store.cart, args);
-            
-            if (result.status === 'success') {
-              // Fetch fresh cart data
-              const cartResponse = await zid.store.cart.fetch();
-              
-              if (cartResponse.status === 'success') {
-                console.log('Cart updated:', cartResponse.data.cart);
-                
-                // Store the cart data
-                this.currentCartData = cartResponse.data.cart;
-                
-                // Open cart and update display
-                await this.openCart();
-              }
-            }
-            
-            return result;
-          } catch (error) {
-            console.error('Error handling cart update:', error);
-            throw error;
-          }
-        };
       },
   
       setupCartButton() {
         const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
         cartButtons.forEach(button => {
-          button.addEventListener('click', async (e) => {
+          button.addEventListener('click', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('Cart button clicked, fetching cart data...');
-            
-            try {
-              // Fetch cart data directly
-              const cartResponse = await zid.store.cart.fetch();
-              console.log('Cart fetch response:', cartResponse);
-              
-              if (cartResponse.status === 'success') {
-                // Store the cart data
-                this.currentCartData = cartResponse.data.cart;
-                
-                // Open cart and display data
-                await this.openCart();
-              } else {
-                console.error('Failed to fetch cart data:', cartResponse);
-              }
-            } catch (error) {
-              console.error('Error fetching cart data:', error);
-            }
+            this.openCart();
           });
         });
       },
@@ -484,8 +416,8 @@
         console.log('Initializing Sliding Cart');
         
         // Fetch settings
-        const settings = await this.fetchSettings();
-        if (!settings?.enabled) {
+        this.settings = await this.fetchSettings();
+        if (!this.settings?.enabled) {
           console.log('Sliding Cart is disabled');
           return;
         }
@@ -493,13 +425,16 @@
         // Create cart structure
         this.createCartStructure();
   
-        // Setup cart functionality
-        this.handleCartUpdates();
+        // Setup cart button
         this.setupCartButton();
   
         // Setup mutation observer for dynamically added cart buttons
-        const observer = new MutationObserver(() => {
-          this.setupCartButton();
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'childList') {
+              this.setupCartButton();
+            }
+          });
         });
   
         observer.observe(document.body, {
