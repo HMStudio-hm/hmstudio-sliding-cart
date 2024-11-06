@@ -1,5 +1,6 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.2
+// HMStudio Sliding Cart v1.0.3
+// Sliding Cart implementation for Zid Stores
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -43,10 +44,6 @@
       createCartStructure() {
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
-  
-        // Get theme colors
-        const themeColor = getComputedStyle(document.documentElement)
-          .getPropertyValue('--theme-primary').trim() || '#00b286';
   
         // Create cart container
         const container = document.createElement('div');
@@ -153,19 +150,6 @@
         return this.cartElement;
       },
   
-      async fetchCartData() {
-        try {
-          const response = await zid.store.cart.fetch();
-          if (response.status === 'success') {
-            return response.data.cart;
-          }
-          throw new Error('Failed to fetch cart data');
-        } catch (error) {
-          console.error('Error fetching cart:', error);
-          return null;
-        }
-      },
-  
       async updateItemQuantity(cartProductId, productId, newQuantity) {
         try {
           await zid.store.cart.updateProduct(cartProductId, newQuantity, productId);
@@ -193,10 +177,10 @@
           border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         `;
   
-        // Product image
+        // Product image with safe checks
         const image = document.createElement('img');
-        image.src = item.product.image;
-        image.alt = item.product.name[currentLang];
+        image.src = item.product?.image || item.image || 'https://via.placeholder.com/80';
+        image.alt = item.product?.name?.[currentLang] || 'Product';
         image.style.cssText = `
           width: 80px;
           height: 80px;
@@ -213,9 +197,9 @@
           gap: 5px;
         `;
   
-        // Product name
+        // Product name with safe check
         const name = document.createElement('h3');
-        name.textContent = item.product.name[currentLang];
+        name.textContent = item.product?.name?.[currentLang] || item.name || 'Product';
         name.style.cssText = `
           margin: 0;
           font-size: 0.9rem;
@@ -356,49 +340,69 @@
       },
   
       async updateCartDisplay() {
-        const cartData = await this.fetchCartData();
-        if (!cartData) return;
+        try {
+          console.log('Updating cart display...');
+          
+          // Fetch fresh cart data
+          const response = await zid.store.cart.fetch();
+          console.log('Cart fetch response:', response);
+          
+          if (!response || response.status !== 'success') {
+            console.error('Failed to fetch cart data');
+            return;
+          }
   
-        const currentLang = getCurrentLanguage();
-        const { content, footer } = this.cartElement;
+          const cartData = response.data.cart;
+          const currentLang = getCurrentLanguage();
+          const { content, footer } = this.cartElement;
   
-        // Update content
-        content.innerHTML = '';
-        if (cartData.products.length === 0) {
-          const emptyMessage = document.createElement('div');
-          emptyMessage.style.cssText = `
-            text-align: center;
-            padding: 40px 20px;
-            color: rgba(0, 0, 0, 0.5);
-          `;
-          emptyMessage.textContent = currentLang === 'ar' 
-            ? 'سلة التسوق فارغة' 
-            : 'Your cart is empty';
-          content.appendChild(emptyMessage);
-        } else {
-          cartData.products.forEach(item => {
-            content.appendChild(this.createCartItem(item, currentLang));
-          });
+          // Update content
+          content.innerHTML = '';
+          
+          if (!cartData.products || cartData.products.length === 0) {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.style.cssText = `
+              text-align: center;
+              padding: 40px 20px;
+              color: rgba(0, 0, 0, 0.5);
+            `;
+            emptyMessage.textContent = currentLang === 'ar' 
+              ? 'سلة التسوق فارغة' 
+              : 'Your cart is empty';
+            content.appendChild(emptyMessage);
+          } else {
+            cartData.products.forEach(item => {
+              if (item) { // Add null check
+                content.appendChild(this.createCartItem(item, currentLang));
+              }
+            });
+          }
+  
+          // Update footer
+          footer.innerHTML = '';
+          footer.appendChild(this.createFooterContent(cartData, currentLang));
+          
+          console.log('Cart display updated successfully');
+        } catch (error) {
+          console.error('Error updating cart display:', error);
         }
-  
-        // Update footer
-        footer.innerHTML = '';
-        footer.appendChild(this.createFooterContent(cartData, currentLang));
       },
   
-      openCart() {
-        if (this.isOpen) return;
-        
+      async openCart() {
         const currentLang = getCurrentLanguage();
         const isRTL = currentLang === 'ar';
         
-        this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
-        this.cartElement.backdrop.style.opacity = '1';
-        this.cartElement.backdrop.style.visibility = 'visible';
-        document.body.style.overflow = 'hidden';
-        this.isOpen = true;
+        if (!this.isOpen) {
+          // Only update UI if cart isn't already open
+          this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
+          this.cartElement.backdrop.style.opacity = '1';
+          this.cartElement.backdrop.style.visibility = 'visible';
+          document.body.style.overflow = 'hidden';
+          this.isOpen = true;
+        }
   
-        this.updateCartDisplay();
+        // Always update the display
+        await this.updateCartDisplay();
       },
   
       closeCart() {
@@ -412,33 +416,38 @@
       },
   
       handleCartUpdates() {
-        // Override the original cart add function to show sliding cart
         const originalAddProduct = zid.store.cart.addProduct;
+        
         zid.store.cart.addProduct = async (...args) => {
           try {
             const result = await originalAddProduct.apply(zid.store.cart, args);
+            
             if (result.status === 'success') {
-              setTimeout(() => {
-                this.openCart();
-                this.updateCartDisplay();
-              }, 100);
+              // Just open the cart - it will fetch data when opening
+              this.openCart();
             }
+            
             return result;
           } catch (error) {
-            console.error('Error in cart add:', error);
+            console.error('Error handling cart update:', error);
             throw error;
           }
         };
       },
   
+      handleCartClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openCart();
+      },
+  
       setupCartButton() {
         const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
         cartButtons.forEach(button => {
-          button.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.openCart();
-          });
+          // Remove any existing click listeners
+          button.removeEventListener('click', this.handleCartClick);
+          // Add new click listener
+          button.addEventListener('click', this.handleCartClick.bind(this));
         });
       },
   
