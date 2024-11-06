@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.8
+// HMStudio Sliding Cart v1.0.9
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -195,15 +195,15 @@
       `;
 
       // Product image
-      const image = document.createElement('img');
-      image.src = item.thumbnail || item.main_image || '/path/to/default-image.jpg';
-      image.alt = item.name || '';
-      image.style.cssText = `
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 4px;
-      `;
+      const imageElement = document.createElement('img');
+imageElement.src = item.images?.[0]?.origin || item.images?.[0]?.thumbnail || '/path/to/default-image.jpg';
+imageElement.alt = item.name || '';
+imageElement.style.cssText = `
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+`;
 
       // Product details container
       const details = document.createElement('div');
@@ -367,57 +367,146 @@
 
       // Coupon Section
       const couponSection = document.createElement('div');
-      couponSection.style.cssText = `
-        padding: 15px 0;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+couponSection.style.cssText = `
+  padding: 15px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+`;
+
+const couponForm = document.createElement('form');
+couponForm.style.cssText = `
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+// Add message container for coupon feedback
+const couponMessage = document.createElement('div');
+couponMessage.style.cssText = `
+  font-size: 0.9rem;
+  display: none;
+  padding: 5px 0;
+`;
+
+const inputContainer = document.createElement('div');
+inputContainer.style.cssText = `
+  display: flex;
+  gap: 10px;
+`;
+
+const couponInput = document.createElement('input');
+couponInput.type = 'text';
+couponInput.placeholder = isArabic ? 'أدخل رمز القسيمة' : 'Enter coupon code';
+couponInput.style.cssText = `
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-size: 0.9rem;
+`;
+
+const applyButton = document.createElement('button');
+applyButton.type = 'button';
+applyButton.style.cssText = `
+  padding: 8px 16px;
+  background: var(--theme-primary, #00b286);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+  justify-content: center;
+`;
+
+// Create spinner element
+const spinner = document.createElement('div');
+spinner.style.cssText = `
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none;
+`;
+
+// Add keyframe animation for spinner
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(styleSheet);
+
+const buttonText = document.createElement('span');
+buttonText.textContent = isArabic ? 'تطبيق' : 'Apply';
+
+applyButton.appendChild(spinner);
+applyButton.appendChild(buttonText);
+
+applyButton.addEventListener('click', async () => {
+  const couponCode = couponInput.value.trim();
+  if (!couponCode) return;
+
+  // Show spinner, disable input and button
+  spinner.style.display = 'block';
+  couponInput.disabled = true;
+  applyButton.disabled = true;
+  buttonText.style.opacity = '0.7';
+
+  try {
+    const response = await zid.store.cart.redeemCoupon(couponCode);
+    
+    if (response.status === 'success') {
+      // Show success message
+      couponMessage.style.cssText = `
+        display: block;
+        color: var(--theme-primary, #00b286);
       `;
-
-      const couponForm = document.createElement('form');
-      couponForm.style.cssText = `
-        display: flex;
-        gap: 10px;
+      couponMessage.textContent = isArabic ? 'تم تطبيق القسيمة بنجاح' : 'Coupon applied successfully';
+      
+      // Update cart display
+      this.updateCartDisplay();
+    } else {
+      // Show error message
+      couponMessage.style.cssText = `
+        display: block;
+        color: #dc3545;
       `;
+      couponMessage.textContent = isArabic ? 'القسيمة غير صالحة' : 'Invalid coupon code';
+    }
+  } catch (error) {
+    // Show error message
+    couponMessage.style.cssText = `
+      display: block;
+      color: #dc3545;
+    `;
+    couponMessage.textContent = isArabic ? 'القسيمة غير صالحة' : 'Invalid coupon code';
+    console.error('Coupon error:', error);
+  } finally {
+    // Hide spinner, enable input and button
+    spinner.style.display = 'none';
+    couponInput.disabled = false;
+    applyButton.disabled = false;
+    buttonText.style.opacity = '1';
+    
+    // Clear input if successful
+    if (couponMessage.style.color.includes('00b286')) {
+      couponInput.value = '';
+    }
+  }
+});
 
-      const couponInput = document.createElement('input');
-      couponInput.type = 'text';
-      couponInput.placeholder = isArabic ? 'أدخل رمز القسيمة' : 'Enter coupon code';
-      couponInput.style.cssText = `
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 4px;
-        font-size: 0.9rem;
-      `;
-
-      const applyButton = document.createElement('button');
-      applyButton.type = 'button';
-      applyButton.textContent = isArabic ? 'تطبيق' : 'Apply';
-      applyButton.style.cssText = `
-        padding: 8px 16px;
-        background: var(--theme-primary, #00b286);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-      `;
-
-      applyButton.addEventListener('click', async () => {
-        const couponCode = couponInput.value.trim();
-        if (couponCode) {
-          try {
-            await zid.store.cart.redeemCoupon(couponCode);
-            this.updateCartDisplay();
-          } catch (error) {
-            alert(isArabic ? 'كود القسيمة غير صالح' : 'Invalid coupon code');
-          }
-        }
-      });
-
-      couponForm.appendChild(couponInput);
-      couponForm.appendChild(applyButton);
-      couponSection.appendChild(couponForm);
+inputContainer.appendChild(couponInput);
+inputContainer.appendChild(applyButton);
+couponForm.appendChild(inputContainer);
+couponForm.appendChild(couponMessage);
+couponSection.appendChild(couponForm);
 
       // Subtotal
       const subtotal = document.createElement('div');
