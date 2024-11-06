@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.0.6
+// HMStudio Sliding Cart v1.0.7
 
 (function() {
     console.log('Sliding Cart script initialized');
@@ -226,44 +226,50 @@
       
         // Price container
         const priceContainer = document.createElement('div');
-priceContainer.style.cssText = `
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-// Function to format price with currency
-const formatPrice = (price) => {
-  if (typeof price === 'number') {
-    return `${price.toFixed(2)} SAR`;
-  }
-  return price;
-};
-
-// Check if item has sale price
-if (item.sale_price && item.price && item.sale_price !== item.price) {
-  // Sale price
-  const salePrice = document.createElement('div');
-  salePrice.textContent = formatPrice(item.sale_price);
-  salePrice.style.cssText = `
-    font-weight: bold;
-    color: var(--theme-primary, #00b286);
+  priceContainer.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-direction: ${currentLang === 'ar' ? 'row-reverse' : 'row'};
   `;
-  priceContainer.appendChild(salePrice);
+
+
+// Get currency symbol from the item's price strings
+  const currencySymbol = ' ر.س ';
+  const isArabic = currentLang === 'ar';
+
+// Check if item has a sale price (price_before exists and is different from current price)
+if (item.price_before && item.price_before !== item.price) {
+    // Sale price (current price)
+    const salePrice = document.createElement('div');
+    salePrice.textContent = item.price_string || `${item.price.toFixed(2)} ${currencySymbol}`;
+    salePrice.style.cssText = `
+      font-weight: bold;
+      color: var(--theme-primary, #00b286);
+    `;
 
   // Original price
   const originalPrice = document.createElement('div');
-  originalPrice.textContent = formatPrice(item.price);
+  originalPrice.textContent = item.price_before_string || `${item.price_before.toFixed(2)} ${currencySymbol}`;
   originalPrice.style.cssText = `
     text-decoration: line-through;
     color: #999;
     font-size: 0.9em;
+    margin-${isArabic ? 'left' : 'right'}: 8px;
   `;
-  priceContainer.appendChild(originalPrice);
+
+  // Add prices in the correct order based on language
+  if (isArabic) {
+    priceContainer.appendChild(originalPrice);
+    priceContainer.appendChild(salePrice);
+  } else {
+    priceContainer.appendChild(salePrice);
+    priceContainer.appendChild(originalPrice);
+  }
 } else {
   // Regular price only
   const price = document.createElement('div');
-  price.textContent = formatPrice(item.price);
+  price.textContent = item.price_string || `${item.price.toFixed(2)} ${currencySymbol}`;
   price.style.cssText = `
     font-weight: bold;
     color: var(--theme-primary, #00b286);
@@ -362,6 +368,11 @@ console.log('Item price data:', {
           gap: 15px;
         `;
       
+        // Get currency from cart data
+         const currencySymbol = cartData.currency?.cart_currency?.symbol || ' ر.س ';
+         const isArabic = currentLang === 'ar';
+
+
         // Subtotal
         const subtotal = document.createElement('div');
         subtotal.style.cssText = `
@@ -369,12 +380,16 @@ console.log('Item price data:', {
           justify-content: space-between;
           font-weight: bold;
         `;
+        // Format the total properly
+         const totalValue = cartData.total.value;
+         const formattedTotal = isArabic
+          ? `${totalValue.toFixed(2)} ${currencySymbol}`
+         : cartData.total.value_string;
         
-        // Use the value_string from total object which includes the currency
         subtotal.innerHTML = `
-          <span>${currentLang === 'ar' ? 'المجموع' : 'Subtotal'}</span>
-          <span>${cartData.total.value_string || '0.00 SAR'}</span>
-        `;
+         <span>${isArabic ? 'المجموع' : 'Subtotal'}</span>
+         <span>${formattedTotal}</span>
+         `; 
       
         // Checkout button
         const checkoutBtn = document.createElement('button');
