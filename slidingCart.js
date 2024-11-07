@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.7
+// HMStudio Sliding Cart v1.1.8
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -498,92 +498,86 @@
       couponForm.appendChild(couponMessage);
       couponSection.appendChild(couponForm);
 
-      // Create price summary section
-      const priceSummary = document.createElement('div');
-      priceSummary.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding-top: 15px;
-      `;
-
-      // Subtotal (before discount)
-      const subtotalRow = document.createElement('div');
-      subtotalRow.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: #666;
-      `;
-      subtotalRow.innerHTML = `
-        <span>${isArabic ? 'المجموع:' : 'Subtotal:'}</span>
-        <span>${cartData.total_before_string || cartData.gross_price_string}</span>
-      `;
-      priceSummary.appendChild(subtotalRow);
-
-      // Discount amount if exists
-      if (cartData.total_before > cartData.total || cartData.gross_price > cartData.price) {
-        const discountAmount = (cartData.total_before - cartData.total) || (cartData.gross_price - cartData.price);
-        const discountRow = document.createElement('div');
-        discountRow.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: var(--theme-primary, #00b286);
-          font-size: 0.95rem;
-        `;
-        discountRow.innerHTML = `
-          <span>${isArabic ? 'قيمة الخصم:' : 'Discount amount:'}</span>
-          <span>- ${isArabic ? discountAmount.toFixed(2) + ' ر.س' : 'SAR ' + discountAmount.toFixed(2)}</span>
-        `;
-        priceSummary.appendChild(discountRow);
-      }
-
-      // Final total with tax
-      const totalRow = document.createElement('div');
-      totalRow.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: bold;
-        border-top: 1px solid #eee;
-        padding-top: 10px;
-        margin-top: 5px;
-      `;
-
-      const totalLabel = document.createElement('div');
-      totalLabel.style.cssText = `
-        display: flex;
-        flex-direction: column;
-      `;
-
-      const totalText = document.createElement('span');
-      totalText.textContent = isArabic ? 'المجموع:' : 'Total:';
-
-      const taxText = document.createElement('span');
-      taxText.style.cssText = `
-        font-size: 0.8rem;
-        color: #666;
-        font-weight: normal;
-      `;
-      taxText.textContent = cartData.tax_percentage ? 
-        (isArabic ? `شامل الضريبة ${cartData.tax_percentage}٪` : `Including VAT ${cartData.tax_percentage}%`) :
-        '';
-
-      totalLabel.appendChild(totalText);
-      if (cartData.tax_percentage > 0) {
-        totalLabel.appendChild(taxText);
-      }
-
-      const totalAmount = document.createElement('span');
-      totalAmount.textContent = cartData.total_string || cartData.price_string;
-
-      totalRow.appendChild(totalLabel);
-      totalRow.appendChild(totalAmount);
-      priceSummary.appendChild(totalRow);
-
-      footer.appendChild(couponSection);
-      footer.appendChild(priceSummary);
+       // Create price summary section
+       const priceSummary = document.createElement('div');
+       priceSummary.style.cssText = `
+         display: flex;
+         flex-direction: column;
+         gap: 10px;
+         padding-top: 15px;
+       `;
+ 
+       // Original total (Subtotal before any discounts)
+       const subtotalRow = document.createElement('div');
+       subtotalRow.style.cssText = `
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         font-size: 0.95rem;
+       `;
+       subtotalRow.innerHTML = `
+         <span>${isArabic ? 'المجموع:' : 'Subtotal:'}</span>
+         <span>${cartData.gross_price_string || '0.00 SAR'}</span>
+       `;
+       priceSummary.appendChild(subtotalRow);
+ 
+       // Calculate total discount (difference between gross price and final price)
+       const discountValue = (cartData.gross_price || 0) - (cartData.total || 0);
+       if (discountValue > 0) {
+         const discountRow = document.createElement('div');
+         discountRow.style.cssText = `
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           font-size: 0.95rem;
+         `;
+         discountRow.innerHTML = `
+           <span>${isArabic ? 'قيمة الخصم:' : 'Discount value:'}</span>
+           <span>${isArabic ? `${discountValue.toFixed(2)} ر.س` : `${discountValue.toFixed(2)} SAR`}</span>
+         `;
+         priceSummary.appendChild(discountRow);
+       }
+ 
+       // Final total with tax info
+       const finalTotalContainer = document.createElement('div');
+       finalTotalContainer.style.cssText = `
+         border-top: 1px solid #eee;
+         padding-top: 10px;
+         margin-top: 5px;
+       `;
+ 
+       const totalRow = document.createElement('div');
+       totalRow.style.cssText = `
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         font-weight: bold;
+         margin-bottom: 4px;
+       `;
+       totalRow.innerHTML = `
+         <span>${isArabic ? 'المجموع:' : 'Total:'}</span>
+         <span>${cartData.total_string || '0.00 SAR'}</span>
+       `;
+       finalTotalContainer.appendChild(totalRow);
+ 
+       // Add VAT info if exists
+       if (cartData.tax_percentage) {
+         const vatInfo = document.createElement('div');
+         vatInfo.style.cssText = `
+           text-align: ${isArabic ? 'left' : 'right'};
+           font-size: 0.8rem;
+           color: #666;
+         `;
+         vatInfo.textContent = isArabic 
+           ? `شامل الضريبة ${cartData.tax_percentage}٪`
+           : `Including VAT ${cartData.tax_percentage}%`;
+         finalTotalContainer.appendChild(vatInfo);
+       }
+ 
+       priceSummary.appendChild(finalTotalContainer);
+ 
+       footer.appendChild(couponSection);
+       footer.appendChild(priceSummary);
 
       // Checkout button
       const checkoutBtn = document.createElement('button');
