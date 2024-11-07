@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.2
+// HMStudio Sliding Cart v1.2.3
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -240,12 +240,12 @@
         flex-direction: ${isArabic ? 'row-reverse' : 'row'};
       `;
 
-      if (item.price_before && item.price_before !== item.price) {
+      if (item.gross_sale_price && item.gross_price !== item.gross_sale_price) {
         // Sale price (current price)
         const salePrice = document.createElement('div');
         const formattedSalePrice = isArabic
-          ? `${item.price.toFixed(2)} ${currencySymbol}`
-          : `${currencySymbol} ${item.price.toFixed(2)}`;
+          ? `${item.gross_sale_price.toFixed(2)} ${currencySymbol}`
+          : `${currencySymbol} ${item.gross_sale_price.toFixed(2)}`;
         salePrice.textContent = formattedSalePrice;
         salePrice.style.cssText = `
           font-weight: bold;
@@ -255,8 +255,8 @@
         // Original price
         const originalPrice = document.createElement('div');
         const formattedOriginalPrice = isArabic
-          ? `${item.price_before.toFixed(2)} ${currencySymbol}`
-          : `${currencySymbol} ${item.price_before.toFixed(2)}`;
+          ? `${item.gross_price.toFixed(2)} ${currencySymbol}`
+          : `${currencySymbol} ${item.gross_price.toFixed(2)}`;
         originalPrice.textContent = formattedOriginalPrice;
         originalPrice.style.cssText = `
           text-decoration: line-through;
@@ -275,9 +275,10 @@
       } else {
         // Regular price only
         const price = document.createElement('div');
+        const priceValue = item.gross_price || item.price;
         const formattedPrice = isArabic
-          ? `${item.price.toFixed(2)} ${currencySymbol}`
-          : `${currencySymbol} ${item.price.toFixed(2)}`;
+          ? `${priceValue.toFixed(2)} ${currencySymbol}`
+          : `${currencySymbol} ${priceValue.toFixed(2)}`;
         price.textContent = formattedPrice;
         price.style.cssText = `
           font-weight: bold;
@@ -360,10 +361,10 @@
 
       return itemElement;
     },
-
     createFooterContent: function(cartData, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
+      const self = this;
 
       const footer = document.createElement('div');
       footer.style.cssText = `
@@ -448,7 +449,6 @@
       applyButton.appendChild(spinner);
       applyButton.appendChild(buttonText);
 
-      const self = this;
       applyButton.addEventListener('click', async () => {
         const couponCode = couponInput.value.trim();
         if (!couponCode) return;
@@ -508,7 +508,7 @@
       couponForm.appendChild(couponMessage);
       couponSection.appendChild(couponForm);
 
-      // Applied Coupon Display (if any)
+      // Applied Coupon Display
       if (cartData.coupon) {
         const couponInfo = document.createElement('div');
         couponInfo.style.cssText = `
@@ -545,8 +545,55 @@
         footer.appendChild(couponInfo);
       }
 
-      // Calculate and display discount if exists
-      if (cartData.products && cartData.products.some(product => product.gross_sale_price)) {
+      // Calculate subtotal using original prices
+      const originalSubtotal = cartData.products.reduce((acc, product) => {
+        const originalPrice = product.gross_price || product.price;
+        return acc + (originalPrice * product.quantity);
+      }, 0);
+
+      // Subtotal
+      const subtotal = document.createElement('div');
+      subtotal.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        color: #666;
+        font-size: 0.9rem;
+      `;
+
+      const subTotalFormatted = isArabic
+        ? `${originalSubtotal.toFixed(2)} ${currencySymbol}`
+        : `${currencySymbol} ${originalSubtotal.toFixed(2)}`;
+
+      subtotal.innerHTML = `
+        <span>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
+        <span>${subTotalFormatted}</span>
+      `;
+
+      footer.appendChild(subtotal);
+
+      // Calculate and display total discount (both from product discounts and coupon)
+      const calculateTotalDiscount = () => {
+        // Start with product discounts
+        let totalDiscount = cartData.products.reduce((acc, product) => {
+          if (product.gross_sale_price) {
+            const regularPrice = product.gross_price || 0;
+            const salePrice = product.gross_sale_price || regularPrice;
+            return acc + ((regularPrice - salePrice) * product.quantity);
+          }
+          return acc;
+        }, 0);
+
+        // Add coupon discount if exists
+        if (cartData.coupon && cartData.coupon_discount) {
+          totalDiscount += parseFloat(cartData.coupon_discount);
+        }
+
+        return totalDiscount;
+      };
+
+      // Display discount if there's any (either from products or coupon)
+      const totalDiscount = calculateTotalDiscount();
+      if (totalDiscount > 0 || (cartData.products && cartData.products.some(product => product.gross_sale_price)) || cartData.coupon) {
         const discountInfo = document.createElement('div');
         discountInfo.style.cssText = `
           display: flex;
@@ -555,55 +602,18 @@
           color: var(--theme-primary, #00b286);
           font-size: 0.9rem;
         `;
-      
-        const totalDiscount = cartData.products.reduce((acc, product) => {
-          if (product.gross_sale_price) {
-            const regularPrice = product.gross_price || 0;
-            const salePrice = product.gross_sale_price || regularPrice;
-            return acc + ((regularPrice - salePrice) * product.quantity);
-          }
-          return acc;
-        }, 0);
-      
-        if (totalDiscount > 0) {
-          const formattedDiscount = isArabic
-            ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
-            : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
-      
-          discountInfo.innerHTML = `
-            <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
-            <span>${formattedDiscount}</span>
-          `;
-      
-          footer.appendChild(discountInfo);
-        }
+
+        const formattedDiscount = isArabic
+          ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
+          : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
+
+        discountInfo.innerHTML = `
+          <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
+          <span>${formattedDiscount}</span>
+        `;
+
+        footer.appendChild(discountInfo);
       }
-
-      // Subtotal
-      const subtotal = document.createElement('div');
-subtotal.style.cssText = `
-  display: flex;
-  justify-content: space-between;
-  color: #666;
-  font-size: 0.9rem;
-`;
-
-// Calculate subtotal using original prices
-const originalSubtotal = cartData.products.reduce((acc, product) => {
-  const originalPrice = product.gross_price || product.price;
-  return acc + (originalPrice * product.quantity);
-}, 0);
-
-const subTotalFormatted = isArabic
-  ? `${originalSubtotal.toFixed(2)} ${currencySymbol}`
-  : `${currencySymbol} ${originalSubtotal.toFixed(2)}`;
-
-subtotal.innerHTML = `
-  <span>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
-  <span>${subTotalFormatted}</span>
-`;
-
-footer.appendChild(subtotal);
 
       // Tax information
       if (cartData.tax_percentage > 0) {
@@ -666,6 +676,7 @@ footer.appendChild(subtotal);
         font-weight: bold;
         cursor: pointer;
         transition: opacity 0.3s;
+        margin-top: 15px;
       `;
       checkoutBtn.addEventListener('click', () => {
         window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
@@ -676,7 +687,6 @@ footer.appendChild(subtotal);
 
       return footer;
     },
-
     updateCartDisplay: async function() {
       const cartData = await this.fetchCartData();
       if (!cartData) return;
