@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.2
+// HMStudio Sliding Cart v1.3.3
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -466,9 +466,10 @@
         }
         
         if (
-          errorMessage.includes('الحد الأدنى') ||
-          errorMessage.includes('minimum') ||
-          errorMessage.includes('يجب ان يكون المبلغ')
+          errorMessage.includes('قيمة منتجات') ||  // New condition for minimum amount
+          errorMessage.includes('حد أدنى') ||      // New condition for minimum amount
+          errorMessage.includes('200.00') ||       // Specific amount check
+          errorMessage.includes('يتطلب حد')        // Another variation of minimum requirement
         ) {
           return 'minimumNotMet';
         }
