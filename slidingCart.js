@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.1
+// HMStudio Sliding Cart v1.1.3
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -224,21 +224,22 @@
 
       // Product name
       const name = document.createElement('h3');
-      name.textContent = item.name || '';
-      name.style.cssText = `
-        margin: 0;
-        font-size: 0.9rem;
-        font-weight: 500;
-      `;
+  name.textContent = item.name || '';
+  name.style.cssText = `
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+  `;
 
       // Price container
       const priceContainer = document.createElement('div');
-      priceContainer.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-direction: ${isArabic ? 'row-reverse' : 'row'};
-      `;
+  priceContainer.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-direction: ${isArabic ? 'row-reverse' : 'row'};
+  `;
 
       if (item.price_before && item.price_before !== item.price) {
         // Sale price (current price)
@@ -364,7 +365,7 @@
     createFooterContent: function(cartData, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
-
+    
       const footer = document.createElement('div');
       footer.style.cssText = `
         display: flex;
@@ -563,30 +564,115 @@
         footer.appendChild(couponInfo);
       }
 
-      // Checkout button
-      const checkoutBtn = document.createElement('button');
-      checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
-      checkoutBtn.style.cssText = `
-        width: 100%;
-        padding: 15px;
-        background: var(--theme-primary, #00b286);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: opacity 0.3s;
-      `;
-      checkoutBtn.addEventListener('click', () => {
-        window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
-      });
+      /// Create price summary section
+  const priceSummary = document.createElement('div');
+  priceSummary.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 15px;
+  `;
 
-      footer.appendChild(couponSection);
-      footer.appendChild(subtotal);
-      footer.appendChild(checkoutBtn);
+  // Helper function for price rows
+  const createPriceRow = (label, value, isSmall = false, isHighlighted = false) => {
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
+      ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
+    `;
 
-      return footer;
-    },
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = label;
+
+    const valueSpan = document.createElement('span');
+    valueSpan.textContent = isArabic 
+      ? `${value.toFixed(2)} ${currencySymbol}`
+      : `${currencySymbol} ${value.toFixed(2)}`;
+
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+    return row;
+  };
+
+  // Add total before discount
+  if (cartData.products_subtotal !== cartData.total.value) {
+    priceSummary.appendChild(
+      createPriceRow(
+        isArabic ? 'المجموع قبل الخصم' : 'Subtotal before discount',
+        cartData.products_subtotal,
+        true
+      )
+    );
+  }
+
+  // Add discount if exists
+  if (cartData.coupon) {
+    const discountAmount = cartData.products_subtotal - cartData.total.value;
+    priceSummary.appendChild(
+      createPriceRow(
+        isArabic ? 'الخصم' : 'Discount',
+        discountAmount,
+        true,
+        true
+      )
+    );
+  }
+
+  // Add tax information if exists
+  if (cartData.applicable_tax_percentage > 0) {
+    const taxText = isArabic 
+      ? `ضريبة القيمة المضافة (${cartData.applicable_tax_percentage}٪)`
+      : `VAT (${cartData.applicable_tax_percentage}%)`;
+    
+    priceSummary.appendChild(
+      createPriceRow(
+        taxText,
+        cartData.tax_amount || 0,
+        true
+      )
+    );
+  }
+
+  // Add final total
+  const totalRow = createPriceRow(
+    isArabic ? 'المجموع النهائي' : 'Total',
+    cartData.total.value,
+    false,
+    true
+  );
+  totalRow.style.borderTop = '1px solid #eee';
+  totalRow.style.paddingTop = '10px';
+  totalRow.style.marginTop = '5px';
+  priceSummary.appendChild(totalRow);
+
+  footer.appendChild(priceSummary);
+
+  // Checkout button
+  const checkoutBtn = document.createElement('button');
+  checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
+  checkoutBtn.style.cssText = `
+    width: 100%;
+    padding: 15px;
+    background: var(--theme-primary, #00b286);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.3s;
+    margin-top: 10px;
+  `;
+  checkoutBtn.addEventListener('click', () => {
+    window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
+  });
+
+  footer.appendChild(checkoutBtn);
+
+  return footer;
+},
 
     updateCartDisplay: async function() {
       const cartData = await this.fetchCartData();
