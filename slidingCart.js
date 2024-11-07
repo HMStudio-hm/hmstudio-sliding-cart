@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.5
+// HMStudio Sliding Cart v1.1.6
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -520,46 +520,56 @@
 
      // Helper function for price rows
      const createPriceRow = (label, value, valueString = null, isSmall = false, isHighlighted = false) => {
-       const row = document.createElement('div');
-       row.style.cssText = `
-         display: flex;
-         justify-content: space-between;
-         align-items: center;
-         ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
-         ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
-       `;
+      const row = document.createElement('div');
+      row.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
+        ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
+      `;
 
-       const labelSpan = document.createElement('span');
-       labelSpan.textContent = label;
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = label;
 
-       const valueSpan = document.createElement('span');
-       valueSpan.textContent = valueString || (isArabic 
-         ? `${value.toFixed(2)} ${currencySymbol}`
-         : `${currencySymbol} ${value.toFixed(2)}`);
+      const valueSpan = document.createElement('span');
+      // Use valueString if provided, otherwise format the value
+      if (valueString) {
+        valueSpan.textContent = valueString;
+      } else {
+        // Check if value is a valid number before using toFixed
+        const formattedValue = typeof value === 'number' 
+          ? value.toFixed(2)
+          : value;
+          
+        valueSpan.textContent = isArabic 
+          ? `${formattedValue} ${currencySymbol}`
+          : `${currencySymbol} ${formattedValue}`;
+      }
 
-       row.appendChild(labelSpan);
-       row.appendChild(valueSpan);
-       return row;
-     };
+      row.appendChild(labelSpan);
+      row.appendChild(valueSpan);
+      return row;
+    };
 
       // Add total before discount (using total_before)
-      if (cartData.total_before && cartData.total_before !== cartData.total) {
+      if (cartData.total_before_string) {
         priceSummary.appendChild(
           createPriceRow(
             isArabic ? 'المجموع قبل الخصم' : 'Subtotal before discount',
-            cartData.total_before,
+            null,
             cartData.total_before_string,
             true
           )
         );
 
         // Calculate and show discount amount
-        const discountAmount = cartData.total_before - cartData.total;
-        if (discountAmount > 0) {
+        if (cartData.total_before > cartData.total) {
+          const discountAmount = cartData.total_before - cartData.total;
           priceSummary.appendChild(
             createPriceRow(
               isArabic ? 'قيمة الخصم' : 'Discount amount',
-              discountAmount,
+              null,
               isArabic 
                 ? `- ${discountAmount.toFixed(2)} ${currencySymbol}`
                 : `- ${currencySymbol} ${discountAmount.toFixed(2)}`,
@@ -590,10 +600,10 @@
         priceSummary.appendChild(taxRow);
       }
 
-      // Add final total
+      // Add final total using total_string
       const totalRow = createPriceRow(
         isArabic ? 'المجموع النهائي' : 'Total',
-        cartData.total,
+        null,
         cartData.total_string,
         false,
         true
