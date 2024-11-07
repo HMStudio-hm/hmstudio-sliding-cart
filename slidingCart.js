@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.8
+// HMStudio Sliding Cart v1.2.9
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -458,56 +458,58 @@
       }
 
       // Coupon Section
-      const couponSection = document.createElement('div');
-      couponSection.style.cssText = `
-        padding: 15px 0;
-      `;
+const couponSection = document.createElement('div');
+couponSection.style.cssText = `
+  padding: 15px 0;
+`;
 
-      const couponForm = document.createElement('form');
-      couponForm.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      `;
+const couponForm = document.createElement('form');
+couponForm.style.cssText = `
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
 
-      // Coupon heading
-      const couponHeading = document.createElement('div');
-      couponHeading.textContent = isArabic ? 'هل لديك قسيمة خصم؟' : 'Have a coupon code?';
-      couponHeading.style.cssText = `
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 8px;
-        color: #666;
-      `;
-      couponForm.appendChild(couponHeading);
+// Prevent form submission
+couponForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+});
 
-      // Add message container for coupon feedback
-      const couponMessage = document.createElement('div');
-      couponMessage.style.cssText = `
-        font-size: 0.9rem;
-        display: none;
-        padding: 8px 12px;
-        border-radius: 4px;
-        margin-top: 8px;
-      `;
+// Add message container for coupon feedback
+const couponMessage = document.createElement('div');
+couponMessage.style.cssText = `
+  font-size: 0.9rem;
+  display: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+`;
 
-      const inputContainer = document.createElement('div');
-      inputContainer.style.cssText = `
-        display: flex;
-        gap: 10px;
-      `;
+const inputContainer = document.createElement('div');
+inputContainer.style.cssText = `
+  display: flex;
+  gap: 10px;
+`;
 
-      const couponInput = document.createElement('input');
-      couponInput.type = 'text';
-      couponInput.placeholder = isArabic ? 'أدخل رمز القسيمة' : 'Enter coupon code';
-      couponInput.style.cssText = `
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 4px;
-        font-size: 0.9rem;
-        transition: border-color 0.3s;
-      `;
+const couponInput = document.createElement('input');
+couponInput.type = 'text';
+couponInput.placeholder = isArabic ? 'أدخل رمز القسيمة' : 'Enter coupon code';
+couponInput.style.cssText = `
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s;
+`;
+
+// Add event listener for Enter key
+couponInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    applyButton.click();
+  }
+});
 
       couponInput.addEventListener('focus', () => {
         couponInput.style.borderColor = 'var(--theme-primary, #00b286)';
@@ -616,28 +618,28 @@
           justify-content: space-between;
           align-items: center;
         `;
-
+      
         const couponInfo = document.createElement('div');
         couponInfo.style.cssText = `
           display: flex;
           flex-direction: column;
           gap: 4px;
         `;
-
+      
         const couponTitle = document.createElement('span');
         couponTitle.textContent = isArabic ? 'القسيمة المطبقة:' : 'Applied Coupon:';
         couponTitle.style.cssText = `
           font-size: 0.8rem;
           color: #666;
         `;
-
+      
         const couponCode = document.createElement('span');
         couponCode.textContent = cartData.coupon.code;
         couponCode.style.cssText = `
           font-weight: 500;
           color: var(--theme-primary, #00b286);
         `;
-
+      
         const removeButton = document.createElement('button');
         removeButton.innerHTML = '✕';
         removeButton.style.cssText = `
@@ -650,20 +652,25 @@
           opacity: 0.7;
           transition: opacity 0.3s;
         `;
-
+      
         removeButton.addEventListener('mouseover', () => {
           removeButton.style.opacity = '1';
         });
-
+      
         removeButton.addEventListener('mouseout', () => {
           removeButton.style.opacity = '0.7';
         });
-
-        removeButton.addEventListener('click', async () => {
-          await zid.store.cart.removeCoupon();
-          self.updateCartDisplay();
+      
+        removeButton.addEventListener('click', async (e) => {
+          e.preventDefault();
+          try {
+            await zid.store.cart.removeCoupon();
+            await self.updateCartDisplay();
+          } catch (error) {
+            console.error('Error removing coupon:', error);
+          }
         });
-
+      
         couponInfo.appendChild(couponTitle);
         couponInfo.appendChild(couponCode);
         appliedCouponContainer.appendChild(couponInfo);
