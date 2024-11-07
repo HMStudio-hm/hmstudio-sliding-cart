@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.4
+// HMStudio Sliding Cart v1.1.5
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -509,88 +509,99 @@
       couponForm.appendChild(couponMessage);
       couponSection.appendChild(couponForm);
 
-      // Create price summary section
-      const priceSummary = document.createElement('div');
-      priceSummary.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding-top: 15px;
-      `;
+     // Create price summary section
+     const priceSummary = document.createElement('div');
+     priceSummary.style.cssText = `
+       display: flex;
+       flex-direction: column;
+       gap: 8px;
+       padding-top: 15px;
+     `;
 
-      // Helper function for price rows
-      const createPriceRow = (label, value, isSmall = false, isHighlighted = false) => {
-        const row = document.createElement('div');
-        row.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
-          ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
-        `;
+     // Helper function for price rows
+     const createPriceRow = (label, value, valueString = null, isSmall = false, isHighlighted = false) => {
+       const row = document.createElement('div');
+       row.style.cssText = `
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
+         ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
+       `;
 
-        const labelSpan = document.createElement('span');
-        labelSpan.textContent = label;
+       const labelSpan = document.createElement('span');
+       labelSpan.textContent = label;
 
-        const valueSpan = document.createElement('span');
-        valueSpan.textContent = isArabic 
-          ? `${value.toFixed(2)} ${currencySymbol}`
-          : `${currencySymbol} ${value.toFixed(2)}`;
+       const valueSpan = document.createElement('span');
+       valueSpan.textContent = valueString || (isArabic 
+         ? `${value.toFixed(2)} ${currencySymbol}`
+         : `${currencySymbol} ${value.toFixed(2)}`);
 
-        row.appendChild(labelSpan);
-        row.appendChild(valueSpan);
-        return row;
-      };
+       row.appendChild(labelSpan);
+       row.appendChild(valueSpan);
+       return row;
+     };
 
-      // Add total before discount
-      if (cartData.products_subtotal !== cartData.total.value) {
+      // Add total before discount (using total_before)
+      if (cartData.total_before && cartData.total_before !== cartData.total) {
         priceSummary.appendChild(
           createPriceRow(
             isArabic ? 'المجموع قبل الخصم' : 'Subtotal before discount',
-            cartData.products_subtotal,
+            cartData.total_before,
+            cartData.total_before_string,
             true
           )
         );
+
+        // Calculate and show discount amount
+        const discountAmount = cartData.total_before - cartData.total;
+        if (discountAmount > 0) {
+          priceSummary.appendChild(
+            createPriceRow(
+              isArabic ? 'قيمة الخصم' : 'Discount amount',
+              discountAmount,
+              isArabic 
+                ? `- ${discountAmount.toFixed(2)} ${currencySymbol}`
+                : `- ${currencySymbol} ${discountAmount.toFixed(2)}`,
+              true,
+              true
+            )
+          );
+        }
       }
 
-      // Add discount if exists
-      if (cartData.coupon) {
-        const discountAmount = cartData.products_subtotal - cartData.total.value;
-        priceSummary.appendChild(
-          createPriceRow(
-            isArabic ? 'الخصم' : 'Discount',
-            discountAmount,
-            true,
-            true
-          )
-        );
-      }
-
-      // Add tax information if exists
-      if (cartData.applicable_tax_percentage > 0) {
-        const taxText = isArabic 
-          ? `ضريبة القيمة المضافة (${cartData.applicable_tax_percentage}٪)`
-          : `VAT (${cartData.applicable_tax_percentage}%)`;
+      // Add tax percentage if it exists
+      if (cartData.tax_percentage > 0) {
+        const taxRow = document.createElement('div');
+        taxRow.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.9rem;
+          color: #666;
+        `;
         
-        priceSummary.appendChild(
-          createPriceRow(
-            taxText,
-            cartData.tax_amount || 0,
-            true
-          )
-        );
+        const taxLabel = document.createElement('span');
+        taxLabel.textContent = isArabic 
+          ? `ضريبة القيمة المضافة (${cartData.tax_percentage}٪)`
+          : `VAT (${cartData.tax_percentage}%)`;
+        
+        taxRow.appendChild(taxLabel);
+        priceSummary.appendChild(taxRow);
       }
 
       // Add final total
       const totalRow = createPriceRow(
         isArabic ? 'المجموع النهائي' : 'Total',
-        cartData.total.value,
+        cartData.total,
+        cartData.total_string,
         false,
         true
       );
       totalRow.style.borderTop = '1px solid #eee';
       totalRow.style.paddingTop = '10px';
       totalRow.style.marginTop = '5px';
+      totalRow.style.fontWeight = 'bold';
       priceSummary.appendChild(totalRow);
 
       footer.appendChild(couponSection);
