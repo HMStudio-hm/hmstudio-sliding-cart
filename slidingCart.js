@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.2
+// HMStudio Sliding Cart v1.1.1
 
 (function() {
   console.log('Sliding Cart script initialized');
