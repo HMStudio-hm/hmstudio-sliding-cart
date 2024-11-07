@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.1
+// HMStudio Sliding Cart v1.2.2
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -556,15 +556,13 @@
           font-size: 0.9rem;
         `;
       
-        // Calculate total discount only for products that have a gross_sale_price
         const totalDiscount = cartData.products.reduce((acc, product) => {
-          // Check if this product has a sale price (discount)
           if (product.gross_sale_price) {
             const regularPrice = product.gross_price || 0;
             const salePrice = product.gross_sale_price || regularPrice;
             return acc + ((regularPrice - salePrice) * product.quantity);
           }
-          return acc;  // Return accumulator without change if no discount
+          return acc;
         }, 0);
       
         if (totalDiscount > 0) {
@@ -583,23 +581,29 @@
 
       // Subtotal
       const subtotal = document.createElement('div');
-      subtotal.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        color: #666;
-        font-size: 0.9rem;
-      `;
+subtotal.style.cssText = `
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 0.9rem;
+`;
 
-      const subTotalFormatted = isArabic
-        ? `${cartData.products_subtotal.toFixed(2)} ${currencySymbol}`
-        : `${currencySymbol} ${cartData.products_subtotal.toFixed(2)}`;
+// Calculate subtotal using original prices
+const originalSubtotal = cartData.products.reduce((acc, product) => {
+  const originalPrice = product.gross_price || product.price;
+  return acc + (originalPrice * product.quantity);
+}, 0);
 
-      subtotal.innerHTML = `
-        <span>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
-        <span>${subTotalFormatted}</span>
-      `;
+const subTotalFormatted = isArabic
+  ? `${originalSubtotal.toFixed(2)} ${currencySymbol}`
+  : `${currencySymbol} ${originalSubtotal.toFixed(2)}`;
 
-      footer.appendChild(subtotal);
+subtotal.innerHTML = `
+  <span>${isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
+  <span>${subTotalFormatted}</span>
+`;
+
+footer.appendChild(subtotal);
 
       // Tax information
       if (cartData.tax_percentage > 0) {
