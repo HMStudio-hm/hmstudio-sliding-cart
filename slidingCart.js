@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.6
+// HMStudio Sliding Cart v1.2.7
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -584,26 +584,20 @@
           }
         });
       
-        // Calculate coupon discount
-        if (cartData.subtotal_before_coupon && cartData.total) {
-          const subtotalBeforeCoupon = parseFloat(cartData.subtotal_before_coupon);
-          const finalTotal = parseFloat(cartData.total.value);
-          const couponDiscount = subtotalBeforeCoupon - finalTotal;
-          if (couponDiscount > 0) {
-            totalDiscount += couponDiscount;
-          }
+        // Add coupon discount if exists
+        if (cartData.coupon && cartData.coupon.discount_amount) {
+          totalDiscount += parseFloat(cartData.coupon.discount_amount);
         }
       
         return totalDiscount;
       };
       
-      // Show discount section if there's any kind of discount
+      // Show discount section if there's any kind of discount or coupon
 const totalDiscount = calculateTotalDiscount();
 console.log('Cart Data:', cartData); // Debug log
 console.log('Calculated Total Discount:', totalDiscount); // Debug log
 
-// Check if there's any discount (product or coupon)
-if (totalDiscount > 0 || cartData.coupon) {  // Changed condition to also check for coupon
+if (totalDiscount > 0 || (cartData.coupon && cartData.coupon.discount_amount > 0)) {
   const discountInfo = document.createElement('div');
   discountInfo.style.cssText = `
     display: flex;
