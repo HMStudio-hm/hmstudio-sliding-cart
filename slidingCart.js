@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.3
+// HMStudio Sliding Cart v1.1.4
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -219,27 +219,27 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
       `;
 
       // Product name
       const name = document.createElement('h3');
-  name.textContent = item.name || '';
-  name.style.cssText = `
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #333;
-  `;
+      name.textContent = item.name || '';
+      name.style.cssText = `
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #333;
+      `;
 
       // Price container
       const priceContainer = document.createElement('div');
-  priceContainer.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-direction: ${isArabic ? 'row-reverse' : 'row'};
-  `;
+      priceContainer.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-direction: ${isArabic ? 'row-reverse' : 'row'};
+      `;
 
       if (item.price_before && item.price_before !== item.price) {
         // Sale price (current price)
@@ -365,7 +365,7 @@
     createFooterContent: function(cartData, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
-    
+
       const footer = document.createElement('div');
       footer.style.cssText = `
         display: flex;
@@ -449,7 +449,7 @@
       applyButton.appendChild(spinner);
       applyButton.appendChild(buttonText);
 
-      const self = this; // Store reference to 'this'
+      const self = this;
       applyButton.addEventListener('click', async () => {
         const couponCode = couponInput.value.trim();
         if (!couponCode) return;
@@ -509,170 +509,116 @@
       couponForm.appendChild(couponMessage);
       couponSection.appendChild(couponForm);
 
-      // Subtotal
-      const subtotal = document.createElement('div');
-      subtotal.style.cssText = `
+      // Create price summary section
+      const priceSummary = document.createElement('div');
+      priceSummary.style.cssText = `
         display: flex;
-        justify-content: space-between;
-        font-weight: bold;
-        margin-top: 10px;
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 15px;
       `;
 
-      const formattedTotal = isArabic
-        ? `${cartData.total.value.toFixed(2)} ${currencySymbol}`
-        : `${currencySymbol} ${cartData.total.value.toFixed(2)}`;
-
-      subtotal.innerHTML = `
-        <span>${isArabic ? 'المجموع' : 'Subtotal'}</span>
-        <span>${formattedTotal}</span>
-      `;
-
-      // Applied Coupon Display (if any)
-      if (cartData.coupon) {
-        const couponInfo = document.createElement('div');
-        couponInfo.style.cssText = `
+      // Helper function for price rows
+      const createPriceRow = (label, value, isSmall = false, isHighlighted = false) => {
+        const row = document.createElement('div');
+        row.style.cssText = `
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px 0;
-          color: var(--theme-primary, #00b286);
+          ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
+          ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
         `;
-        
-        const couponText = document.createElement('span');
-        couponText.textContent = isArabic ? 'القسيمة المطبقة:' : 'Applied Coupon:';
-        
-        const couponCode = document.createElement('span');
-        couponCode.textContent = cartData.coupon.code;
-        
-        const removeButton = document.createElement('button');
-        removeButton.textContent = '✕';
-        removeButton.style.cssText = `
-          border: none;
-          background: none;
-          color: #999;
-          cursor: pointer;
-          padding: 5px;
-        `;
-        removeButton.addEventListener('click', async () => {
-          await zid.store.cart.removeCoupon();
-          self.updateCartDisplay();
-        });
 
-        couponInfo.appendChild(couponText);
-        couponInfo.appendChild(couponCode);
-        couponInfo.appendChild(removeButton);
-        footer.appendChild(couponInfo);
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = label;
+
+        const valueSpan = document.createElement('span');
+        valueSpan.textContent = isArabic 
+          ? `${value.toFixed(2)} ${currencySymbol}`
+          : `${currencySymbol} ${value.toFixed(2)}`;
+
+        row.appendChild(labelSpan);
+        row.appendChild(valueSpan);
+        return row;
+      };
+
+      // Add total before discount
+      if (cartData.products_subtotal !== cartData.total.value) {
+        priceSummary.appendChild(
+          createPriceRow(
+            isArabic ? 'المجموع قبل الخصم' : 'Subtotal before discount',
+            cartData.products_subtotal,
+            true
+          )
+        );
       }
 
-      /// Create price summary section
-  const priceSummary = document.createElement('div');
-  priceSummary.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-top: 15px;
-  `;
+      // Add discount if exists
+      if (cartData.coupon) {
+        const discountAmount = cartData.products_subtotal - cartData.total.value;
+        priceSummary.appendChild(
+          createPriceRow(
+            isArabic ? 'الخصم' : 'Discount',
+            discountAmount,
+            true,
+            true
+          )
+        );
+      }
 
-  // Helper function for price rows
-  const createPriceRow = (label, value, isSmall = false, isHighlighted = false) => {
-    const row = document.createElement('div');
-    row.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      ${isSmall ? 'font-size: 0.9rem; color: #666;' : ''}
-      ${isHighlighted ? 'font-weight: bold; color: var(--theme-primary, #00b286);' : ''}
-    `;
+      // Add tax information if exists
+      if (cartData.applicable_tax_percentage > 0) {
+        const taxText = isArabic 
+          ? `ضريبة القيمة المضافة (${cartData.applicable_tax_percentage}٪)`
+          : `VAT (${cartData.applicable_tax_percentage}%)`;
+        
+        priceSummary.appendChild(
+          createPriceRow(
+            taxText,
+            cartData.tax_amount || 0,
+            true
+          )
+        );
+      }
 
-    const labelSpan = document.createElement('span');
-    labelSpan.textContent = label;
-
-    const valueSpan = document.createElement('span');
-    valueSpan.textContent = isArabic 
-      ? `${value.toFixed(2)} ${currencySymbol}`
-      : `${currencySymbol} ${value.toFixed(2)}`;
-
-    row.appendChild(labelSpan);
-    row.appendChild(valueSpan);
-    return row;
-  };
-
-  // Add total before discount
-  if (cartData.products_subtotal !== cartData.total.value) {
-    priceSummary.appendChild(
-      createPriceRow(
-        isArabic ? 'المجموع قبل الخصم' : 'Subtotal before discount',
-        cartData.products_subtotal,
+      // Add final total
+      const totalRow = createPriceRow(
+        isArabic ? 'المجموع النهائي' : 'Total',
+        cartData.total.value,
+        false,
         true
-      )
-    );
-  }
+      );
+      totalRow.style.borderTop = '1px solid #eee';
+      totalRow.style.paddingTop = '10px';
+      totalRow.style.marginTop = '5px';
+      priceSummary.appendChild(totalRow);
 
-  // Add discount if exists
-  if (cartData.coupon) {
-    const discountAmount = cartData.products_subtotal - cartData.total.value;
-    priceSummary.appendChild(
-      createPriceRow(
-        isArabic ? 'الخصم' : 'Discount',
-        discountAmount,
-        true,
-        true
-      )
-    );
-  }
+      footer.appendChild(couponSection);
+      footer.appendChild(priceSummary);
 
-  // Add tax information if exists
-  if (cartData.applicable_tax_percentage > 0) {
-    const taxText = isArabic 
-      ? `ضريبة القيمة المضافة (${cartData.applicable_tax_percentage}٪)`
-      : `VAT (${cartData.applicable_tax_percentage}%)`;
-    
-    priceSummary.appendChild(
-      createPriceRow(
-        taxText,
-        cartData.tax_amount || 0,
-        true
-      )
-    );
-  }
+      // Checkout button
+      const checkoutBtn = document.createElement('button');
+      checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
+      checkoutBtn.style.cssText = `
+        width: 100%;
+        padding: 15px;
+        background: var(--theme-primary, #00b286);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: opacity 0.3s;
+        margin-top: 10px;
+      `;
+      checkoutBtn.addEventListener('click', () => {
+        window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
+      });
 
-  // Add final total
-  const totalRow = createPriceRow(
-    isArabic ? 'المجموع النهائي' : 'Total',
-    cartData.total.value,
-    false,
-    true
-  );
-  totalRow.style.borderTop = '1px solid #eee';
-  totalRow.style.paddingTop = '10px';
-  totalRow.style.marginTop = '5px';
-  priceSummary.appendChild(totalRow);
+      footer.appendChild(checkoutBtn);
 
-  footer.appendChild(priceSummary);
-
-  // Checkout button
-  const checkoutBtn = document.createElement('button');
-  checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
-  checkoutBtn.style.cssText = `
-    width: 100%;
-    padding: 15px;
-    background: var(--theme-primary, #00b286);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: opacity 0.3s;
-    margin-top: 10px;
-  `;
-  checkoutBtn.addEventListener('click', () => {
-    window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
-  });
-
-  footer.appendChild(checkoutBtn);
-
-  return footer;
-},
+      return footer;
+    },
 
     updateCartDisplay: async function() {
       const cartData = await this.fetchCartData();
@@ -696,8 +642,8 @@
           : 'Your cart is empty';
         content.appendChild(emptyMessage);
         
-       // Hide footer when cart is empty
-       footer.style.display = 'none';
+        // Hide footer when cart is empty
+        footer.style.display = 'none';
       } else {
         cartData.products.forEach(item => {
           content.appendChild(this.createCartItem(item, currentLang));
@@ -736,7 +682,7 @@
     },
 
     handleCartUpdates: function() {
-      const self = this;  // Store reference to 'this'
+      const self = this;
       const originalAddProduct = zid.store.cart.addProduct;
       zid.store.cart.addProduct = async function(...args) {
         try {
