@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.1
+// HMStudio Sliding Cart v1.3.2
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -457,24 +457,36 @@
         // Check the error message from the response data
         const errorMessage = (response.data?.message || '').toLowerCase();
         
-        // Check for specific error conditions
-        if (errorMessage.includes('expired')) {
+        // Check for specific error conditions with their Arabic messages
+        if (
+          errorMessage.includes('منتهية الصلاحية') ||
+          errorMessage.includes('expired')
+        ) {
           return 'expiredCoupon';
         }
         
-        if (errorMessage.includes('minimum')) {
+        if (
+          errorMessage.includes('الحد الأدنى') ||
+          errorMessage.includes('minimum') ||
+          errorMessage.includes('يجب ان يكون المبلغ')
+        ) {
           return 'minimumNotMet';
         }
         
         if (
-          errorMessage.includes('السلة لا تحتوي أي منتج من المنتجات المشمولة') || // Arabic message for no eligible products
+          errorMessage.includes('السلة لا تحتوي أي منتج من المنتجات المشمولة') ||
           errorMessage.includes('not eligible') ||
           errorMessage.includes('not applicable')
         ) {
           return 'productNotEligible';
         }
         
-        if (errorMessage.includes('used')) {
+        if (
+          errorMessage.includes('تم استخدام') ||
+          errorMessage.includes('مستخدمة مسبقا') ||
+          errorMessage.includes('already used') ||
+          errorMessage.includes('used before')
+        ) {
           return 'alreadyUsed';
         }
 
