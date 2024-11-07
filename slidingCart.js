@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.7
+// HMStudio Sliding Cart v1.2.8
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -12,6 +12,34 @@
     }
   `;
   document.head.appendChild(styleSheet);
+
+  // Coupon feedback messages
+  const couponMessages = {
+    invalidCoupon: {
+      ar: 'القسيمة غير صالحة',
+      en: 'Invalid coupon code'
+    },
+    expiredCoupon: {
+      ar: 'انتهت صلاحية القسيمة',
+      en: 'Coupon has expired'
+    },
+    productNotEligible: {
+      ar: 'هذه القسيمة غير متوفرة للمنتجات المختارة',
+      en: 'This coupon is not available for the selected products'
+    },
+    minimumNotMet: {
+      ar: 'لم يتم الوصول إلى الحد الأدنى للطلب',
+      en: 'Minimum order amount not met'
+    },
+    alreadyUsed: {
+      ar: 'تم استخدام هذه القسيمة من قبل',
+      en: 'This coupon has already been used'
+    },
+    success: {
+      ar: 'تم تطبيق القسيمة بنجاح',
+      en: 'Coupon applied successfully'
+    }
+  };
 
   function getStoreIdFromUrl() {
     const scriptTag = document.currentScript;
@@ -310,7 +338,14 @@
           align-items: center;
           justify-content: center;
           border-radius: 4px;
+          transition: background-color 0.3s;
         `;
+        btn.addEventListener('mouseover', () => {
+          btn.style.backgroundColor = '#f0f0f0';
+        });
+        btn.addEventListener('mouseout', () => {
+          btn.style.backgroundColor = 'transparent';
+        });
         btn.addEventListener('click', onClick.bind(this));
         return btn;
       };
@@ -323,6 +358,10 @@
 
       const quantity = document.createElement('span');
       quantity.textContent = item.quantity;
+      quantity.style.cssText = `
+        min-width: 20px;
+        text-align: center;
+      `;
 
       const increaseBtn = createButton('+', () => {
         this.updateItemQuantity(item.id, item.product_id, item.quantity + 1);
@@ -339,7 +378,14 @@
         margin-${isArabic ? 'right' : 'left'}: auto;
         font-size: 1.2rem;
         opacity: 0.7;
+        transition: opacity 0.3s;
       `;
+      removeBtn.addEventListener('mouseover', () => {
+        removeBtn.style.opacity = '1';
+      });
+      removeBtn.addEventListener('mouseout', () => {
+        removeBtn.style.opacity = '0.7';
+      });
       removeBtn.addEventListener('click', () => {
         this.removeItem(item.id, item.product_id);
       });
@@ -374,12 +420,47 @@
         direction: ${isArabic ? 'rtl' : 'ltr'};
       `;
 
+      // Helper function to show coupon messages
+      function showCouponMessage(type, isArabic) {
+        const message = couponMessages[type][isArabic ? 'ar' : 'en'];
+        couponMessage.style.display = 'block';
+        couponMessage.textContent = message;
+        
+        if (type === 'success') {
+          couponMessage.style.cssText = `
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            background-color: rgba(0, 178, 134, 0.1);
+            color: var(--theme-primary, #00b286);
+          `;
+          couponInput.value = '';
+        } else {
+          couponMessage.style.cssText = `
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+          `;
+        }
+      }
+
+      // Helper function to determine error type
+      function getErrorType(response) {
+        if (response.error?.includes('expired')) return 'expiredCoupon';
+        if (response.error?.includes('minimum')) return 'minimumNotMet';
+        if (response.error?.includes('product')) return 'productNotEligible';
+        if (response.error?.includes('used')) return 'alreadyUsed';
+        return 'invalidCoupon';
+      }
+
       // Coupon Section
       const couponSection = document.createElement('div');
       couponSection.style.cssText = `
         padding: 15px 0;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
       `;
 
       const couponForm = document.createElement('form');
@@ -389,12 +470,25 @@
         gap: 10px;
       `;
 
+      // Coupon heading
+      const couponHeading = document.createElement('div');
+      couponHeading.textContent = isArabic ? 'هل لديك قسيمة خصم؟' : 'Have a coupon code?';
+      couponHeading.style.cssText = `
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #666;
+      `;
+      couponForm.appendChild(couponHeading);
+
       // Add message container for coupon feedback
       const couponMessage = document.createElement('div');
       couponMessage.style.cssText = `
         font-size: 0.9rem;
         display: none;
-        padding: 5px 0;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin-top: 8px;
       `;
 
       const inputContainer = document.createElement('div');
@@ -412,8 +506,18 @@
         border: 1px solid rgba(0, 0, 0, 0.1);
         border-radius: 4px;
         font-size: 0.9rem;
+        transition: border-color 0.3s;
       `;
 
+      couponInput.addEventListener('focus', () => {
+        couponInput.style.borderColor = 'var(--theme-primary, #00b286)';
+      });
+
+      couponInput.addEventListener('blur', () => {
+        couponInput.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+      });
+
+      // Apply button with spinner
       const applyButton = document.createElement('button');
       applyButton.type = 'button';
       applyButton.style.cssText = `
@@ -429,9 +533,21 @@
         gap: 8px;
         min-width: 80px;
         justify-content: center;
+        transition: opacity 0.3s, background-color 0.3s;
       `;
 
-      // Create spinner element
+      applyButton.addEventListener('mouseover', () => {
+        if (!applyButton.disabled) {
+          applyButton.style.opacity = '0.9';
+        }
+      });
+
+      applyButton.addEventListener('mouseout', () => {
+        if (!applyButton.disabled) {
+          applyButton.style.opacity = '1';
+        }
+      });
+
       const spinner = document.createElement('div');
       spinner.style.cssText = `
         width: 16px;
@@ -449,6 +565,7 @@
       applyButton.appendChild(spinner);
       applyButton.appendChild(buttonText);
 
+      // Handle coupon application
       applyButton.addEventListener('click', async () => {
         const couponCode = couponInput.value.trim();
         if (!couponCode) return;
@@ -463,42 +580,21 @@
           const response = await zid.store.cart.redeemCoupon(couponCode);
           
           if (response.status === 'success') {
-            // Show success message
-            couponMessage.style.cssText = `
-              display: block;
-              color: var(--theme-primary, #00b286);
-            `;
-            couponMessage.textContent = isArabic ? 'تم تطبيق القسيمة بنجاح' : 'Coupon applied successfully';
-            
-            // Update cart display
+            showCouponMessage('success', isArabic);
             self.updateCartDisplay();
           } else {
-            // Show error message
-            couponMessage.style.cssText = `
-              display: block;
-              color: #dc3545;
-            `;
-            couponMessage.textContent = isArabic ? 'القسيمة غير صالحة' : 'Invalid coupon code';
+            const errorType = getErrorType(response);
+            showCouponMessage(errorType, isArabic);
           }
         } catch (error) {
-          // Show error message
-          couponMessage.style.cssText = `
-            display: block;
-            color: #dc3545;
-          `;
-          couponMessage.textContent = isArabic ? 'القسيمة غير صالحة' : 'Invalid coupon code';
           console.error('Coupon error:', error);
+          showCouponMessage('invalidCoupon', isArabic);
         } finally {
           // Hide spinner, enable input and button
           spinner.style.display = 'none';
           couponInput.disabled = false;
           applyButton.disabled = false;
           buttonText.style.opacity = '1';
-          
-          // Clear input if successful
-          if (couponMessage.style.color.includes('00b286')) {
-            couponInput.value = '';
-          }
         }
       });
 
@@ -508,43 +604,72 @@
       couponForm.appendChild(couponMessage);
       couponSection.appendChild(couponForm);
 
-      // Applied Coupon Display
+      // Applied Coupon Display (if exists)
       if (cartData.coupon) {
-        const couponInfo = document.createElement('div');
-        couponInfo.style.cssText = `
+        const appliedCouponContainer = document.createElement('div');
+        appliedCouponContainer.style.cssText = `
+          margin-top: 10px;
+          padding: 12px;
+          background-color: rgba(0, 178, 134, 0.1);
+          border-radius: 4px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px 0;
-          color: var(--theme-primary, #00b286);
         `;
-        
-        const couponText = document.createElement('span');
-        couponText.textContent = isArabic ? 'القسيمة المطبقة:' : 'Applied Coupon:';
-        
+
+        const couponInfo = document.createElement('div');
+        couponInfo.style.cssText = `
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        `;
+
+        const couponTitle = document.createElement('span');
+        couponTitle.textContent = isArabic ? 'القسيمة المطبقة:' : 'Applied Coupon:';
+        couponTitle.style.cssText = `
+          font-size: 0.8rem;
+          color: #666;
+        `;
+
         const couponCode = document.createElement('span');
         couponCode.textContent = cartData.coupon.code;
-        
+        couponCode.style.cssText = `
+          font-weight: 500;
+          color: var(--theme-primary, #00b286);
+        `;
+
         const removeButton = document.createElement('button');
-        removeButton.textContent = '✕';
+        removeButton.innerHTML = '✕';
         removeButton.style.cssText = `
           border: none;
           background: none;
-          color: #999;
+          color: #666;
           cursor: pointer;
           padding: 5px;
+          font-size: 1.1rem;
+          opacity: 0.7;
+          transition: opacity 0.3s;
         `;
+
+        removeButton.addEventListener('mouseover', () => {
+          removeButton.style.opacity = '1';
+        });
+
+        removeButton.addEventListener('mouseout', () => {
+          removeButton.style.opacity = '0.7';
+        });
+
         removeButton.addEventListener('click', async () => {
           await zid.store.cart.removeCoupon();
           self.updateCartDisplay();
         });
 
-        couponInfo.appendChild(couponText);
+        couponInfo.appendChild(couponTitle);
         couponInfo.appendChild(couponCode);
-        couponInfo.appendChild(removeButton);
-        footer.appendChild(couponInfo);
+        appliedCouponContainer.appendChild(couponInfo);
+        appliedCouponContainer.appendChild(removeButton);
+        couponForm.appendChild(appliedCouponContainer);
       }
-
       // Calculate subtotal using original prices
       const originalSubtotal = cartData.products.reduce((acc, product) => {
         const originalPrice = product.gross_price || product.price;
@@ -558,6 +683,7 @@
         justify-content: space-between;
         color: #666;
         font-size: 0.9rem;
+        margin-top: 15px;
       `;
 
       const subTotalFormatted = isArabic
@@ -574,7 +700,7 @@
       // Calculate and display total discount (both from product discounts and coupon)
       const calculateTotalDiscount = () => {
         let totalDiscount = 0;
-      
+
         // Calculate product discounts
         cartData.products.forEach(product => {
           if (product.gross_sale_price && product.gross_sale_price !== product.gross_price) {
@@ -583,41 +709,38 @@
             totalDiscount += ((regularPrice - salePrice) * product.quantity);
           }
         });
-      
+
         // Add coupon discount if exists
         if (cartData.coupon && cartData.coupon.discount_amount) {
           totalDiscount += parseFloat(cartData.coupon.discount_amount);
         }
-      
+
         return totalDiscount;
       };
-      
-      // Show discount section if there's any kind of discount or coupon
-const totalDiscount = calculateTotalDiscount();
-console.log('Cart Data:', cartData); // Debug log
-console.log('Calculated Total Discount:', totalDiscount); // Debug log
 
-if (totalDiscount > 0 || (cartData.coupon && cartData.coupon.discount_amount > 0)) {
-  const discountInfo = document.createElement('div');
-  discountInfo.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    color: var(--theme-primary, #00b286);
-    font-size: 0.9rem;
-  `;
+      // Display discount if there's any (either from products or coupon)
+      const totalDiscount = calculateTotalDiscount();
+      if (totalDiscount > 0 || (cartData.coupon && cartData.coupon.discount_amount > 0)) {
+        const discountInfo = document.createElement('div');
+        discountInfo.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          color: var(--theme-primary, #00b286);
+          font-size: 0.9rem;
+        `;
 
-  const formattedDiscount = isArabic
-    ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
-    : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
+        const formattedDiscount = isArabic
+          ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
+          : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
 
-  discountInfo.innerHTML = `
-    <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
-    <span>${formattedDiscount}</span>
-  `;
+        discountInfo.innerHTML = `
+          <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
+          <span>${formattedDiscount}</span>
+        `;
 
-  footer.appendChild(discountInfo);
-}
+        footer.appendChild(discountInfo);
+      }
 
       // Tax information
       if (cartData.tax_percentage > 0) {
@@ -682,6 +805,15 @@ if (totalDiscount > 0 || (cartData.coupon && cartData.coupon.discount_amount > 0
         transition: opacity 0.3s;
         margin-top: 15px;
       `;
+
+      checkoutBtn.addEventListener('mouseover', () => {
+        checkoutBtn.style.opacity = '0.9';
+      });
+
+      checkoutBtn.addEventListener('mouseout', () => {
+        checkoutBtn.style.opacity = '1';
+      });
+
       checkoutBtn.addEventListener('click', () => {
         window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
       });
