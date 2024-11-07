@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.3
+// HMStudio Sliding Cart v1.2.4
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -582,18 +582,18 @@
           }
           return acc;
         }, 0);
-
+      
         // Add coupon discount if exists
-        if (cartData.coupon && cartData.coupon_discount) {
+        if (cartData.coupon_discount) {
           totalDiscount += parseFloat(cartData.coupon_discount);
         }
-
+      
         return totalDiscount;
       };
-
+      
       // Display discount if there's any (either from products or coupon)
       const totalDiscount = calculateTotalDiscount();
-      if (totalDiscount > 0 || (cartData.products && cartData.products.some(product => product.gross_sale_price)) || cartData.coupon) {
+      if (totalDiscount > 0 || cartData.coupon_discount) {  // Changed this condition
         const discountInfo = document.createElement('div');
         discountInfo.style.cssText = `
           display: flex;
@@ -602,16 +602,16 @@
           color: var(--theme-primary, #00b286);
           font-size: 0.9rem;
         `;
-
+      
         const formattedDiscount = isArabic
           ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
           : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
-
+      
         discountInfo.innerHTML = `
           <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
           <span>${formattedDiscount}</span>
         `;
-
+      
         footer.appendChild(discountInfo);
       }
 
