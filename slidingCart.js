@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.3
+// HMStudio Sliding Cart v1.3.4
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -84,6 +84,7 @@
       // Create cart container
       const container = document.createElement('div');
       container.id = 'hmstudio-sliding-cart';
+      container.className = 'hmstudio-cart-container';
       container.style.cssText = `
         position: fixed;
         top: 0;
@@ -101,6 +102,7 @@
 
       // Create header
       const header = document.createElement('div');
+      header.className = 'hmstudio-cart-header';
       header.style.cssText = `
         padding: 20px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
@@ -110,6 +112,7 @@
       `;
 
       const title = document.createElement('h2');
+      title.className = 'hmstudio-cart-title';
       title.textContent = currentLang === 'ar' ? 'سلة التسوق' : 'Shopping Cart';
       title.style.cssText = `
         margin: 0;
@@ -118,6 +121,7 @@
       `;
 
       const closeButton = document.createElement('button');
+      closeButton.className = 'hmstudio-cart-close';
       closeButton.innerHTML = '✕';
       closeButton.style.cssText = `
         background: none;
@@ -137,6 +141,7 @@
 
       // Create content area
       const content = document.createElement('div');
+      content.className = 'hmstudio-cart-content';
       content.style.cssText = `
         flex: 1;
         overflow-y: auto;
@@ -145,6 +150,7 @@
 
       // Create footer
       const footer = document.createElement('div');
+      footer.className = 'hmstudio-cart-footer';
       footer.style.cssText = `
         padding: 20px;
         border-top: 1px solid rgba(0, 0, 0, 0.1);
@@ -158,6 +164,7 @@
       // Create backdrop
       const backdrop = document.createElement('div');
       backdrop.id = 'hmstudio-sliding-cart-backdrop';
+      backdrop.className = 'hmstudio-cart-backdrop';
       backdrop.style.cssText = `
         position: fixed;
         top: 0;
@@ -186,7 +193,6 @@
 
       return this.cartElement;
     },
-
     fetchCartData: async function() {
       try {
         const response = await zid.store.cart.fetch();
@@ -217,11 +223,13 @@
         console.error('Error removing item:', error);
       }
     },
+
     createCartItem: function(item, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
 
       const itemElement = document.createElement('div');
+      itemElement.className = 'hmstudio-cart-item';
       itemElement.style.cssText = `
         display: flex;
         gap: 15px;
@@ -232,6 +240,7 @@
 
       // Product image
       const imageElement = document.createElement('img');
+      imageElement.className = 'hmstudio-cart-item-image';
       imageElement.src = item.images?.[0]?.origin || item.images?.[0]?.thumbnail || '/path/to/default-image.jpg';
       imageElement.alt = item.name || '';
       imageElement.style.cssText = `
@@ -243,6 +252,7 @@
 
       // Product details container
       const details = document.createElement('div');
+      details.className = 'hmstudio-cart-item-details';
       details.style.cssText = `
         flex: 1;
         display: flex;
@@ -252,6 +262,7 @@
 
       // Product name
       const name = document.createElement('h3');
+      name.className = 'hmstudio-cart-item-name';
       name.textContent = item.name || '';
       name.style.cssText = `
         margin: 0;
@@ -261,6 +272,7 @@
 
       // Price container
       const priceContainer = document.createElement('div');
+      priceContainer.className = 'hmstudio-cart-item-price-container';
       priceContainer.style.cssText = `
         display: flex;
         align-items: center;
@@ -271,6 +283,7 @@
       if (item.gross_sale_price && item.gross_price !== item.gross_sale_price) {
         // Sale price (current price)
         const salePrice = document.createElement('div');
+        salePrice.className = 'hmstudio-cart-item-sale-price';
         const formattedSalePrice = isArabic
           ? `${item.gross_sale_price.toFixed(2)} ${currencySymbol}`
           : `${currencySymbol} ${item.gross_sale_price.toFixed(2)}`;
@@ -282,6 +295,7 @@
         
         // Original price
         const originalPrice = document.createElement('div');
+        originalPrice.className = 'hmstudio-cart-item-original-price';
         const formattedOriginalPrice = isArabic
           ? `${item.gross_price.toFixed(2)} ${currencySymbol}`
           : `${currencySymbol} ${item.gross_price.toFixed(2)}`;
@@ -303,6 +317,7 @@
       } else {
         // Regular price only
         const price = document.createElement('div');
+        price.className = 'hmstudio-cart-item-price';
         const priceValue = item.gross_price || item.price;
         const formattedPrice = isArabic
           ? `${priceValue.toFixed(2)} ${currencySymbol}`
@@ -317,6 +332,7 @@
 
       // Quantity controls
       const quantityControls = document.createElement('div');
+      quantityControls.className = 'hmstudio-cart-item-quantity';
       quantityControls.style.cssText = `
         display: flex;
         align-items: center;
@@ -326,6 +342,7 @@
 
       const createButton = (text, onClick) => {
         const btn = document.createElement('button');
+        btn.className = `hmstudio-cart-quantity-${text === '+' ? 'increase' : 'decrease'}`;
         btn.textContent = text;
         btn.style.cssText = `
           width: 24px;
@@ -357,6 +374,7 @@
       });
 
       const quantity = document.createElement('span');
+      quantity.className = 'hmstudio-cart-quantity-value';
       quantity.textContent = item.quantity;
       quantity.style.cssText = `
         min-width: 20px;
@@ -369,6 +387,7 @@
 
       // Remove button
       const removeBtn = document.createElement('button');
+      removeBtn.className = 'hmstudio-cart-item-remove';
       removeBtn.innerHTML = '🗑️';
       removeBtn.style.cssText = `
         background: none;
@@ -407,13 +426,13 @@
 
       return itemElement;
     },
-
     createFooterContent: function(cartData, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
       const self = this;
 
       const footer = document.createElement('div');
+      footer.className = 'hmstudio-cart-footer-content';
       footer.style.cssText = `
         display: flex;
         flex-direction: column;
@@ -421,35 +440,6 @@
         direction: ${isArabic ? 'rtl' : 'ltr'};
       `;
 
-      // Helper function to show coupon messages
-      function showCouponMessage(type, isArabic) {
-        const message = couponMessages[type][isArabic ? 'ar' : 'en'];
-        couponMessage.style.display = 'block';
-        couponMessage.textContent = message;
-        
-        if (type === 'success') {
-          couponMessage.style.cssText = `
-            display: block;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-top: 8px;
-            background-color: rgba(0, 178, 134, 0.1);
-            color: var(--theme-primary, #00b286);
-          `;
-          couponInput.value = '';
-        } else {
-          couponMessage.style.cssText = `
-            display: block;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-top: 8px;
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-          `;
-        }
-      }
-
-      // Helper function to determine error type
       function getErrorType(response) {
         // Log the full response for debugging
         console.log('Coupon response:', response);
@@ -466,10 +456,10 @@
         }
         
         if (
-          errorMessage.includes('قيمة منتجات') ||  // New condition for minimum amount
-          errorMessage.includes('حد أدنى') ||      // New condition for minimum amount
-          errorMessage.includes('200.00') ||       // Specific amount check
-          errorMessage.includes('يتطلب حد')        // Another variation of minimum requirement
+          errorMessage.includes('قيمة منتجات') ||
+          errorMessage.includes('حد أدنى') ||
+          errorMessage.includes('200.00') ||
+          errorMessage.includes('يتطلب حد')
         ) {
           return 'minimumNotMet';
         }
@@ -497,11 +487,13 @@
 
       // Coupon Section
       const couponSection = document.createElement('div');
+      couponSection.className = 'hmstudio-cart-coupon-section';
       couponSection.style.cssText = `
         padding: 15px 0;
       `;
 
       const couponForm = document.createElement('form');
+      couponForm.className = 'hmstudio-cart-coupon-form';
       couponForm.style.cssText = `
         display: flex;
         flex-direction: column;
@@ -515,6 +507,7 @@
 
       // Add message container for coupon feedback
       const couponMessage = document.createElement('div');
+      couponMessage.className = 'hmstudio-cart-coupon-message';
       couponMessage.style.cssText = `
         font-size: 0.9rem;
         display: none;
@@ -524,12 +517,14 @@
       `;
 
       const inputContainer = document.createElement('div');
+      inputContainer.className = 'hmstudio-cart-coupon-input-container';
       inputContainer.style.cssText = `
         display: flex;
         gap: 10px;
       `;
 
       const couponInput = document.createElement('input');
+      couponInput.className = 'hmstudio-cart-coupon-input';
       couponInput.type = 'text';
       couponInput.placeholder = isArabic ? 'أدخل رمز القسيمة' : 'Enter coupon code';
       couponInput.style.cssText = `
@@ -557,8 +552,36 @@
         couponInput.style.borderColor = 'rgba(0, 0, 0, 0.1)';
       });
 
+      function showCouponMessage(type, isArabic) {
+        const message = couponMessages[type][isArabic ? 'ar' : 'en'];
+        couponMessage.style.display = 'block';
+        couponMessage.textContent = message;
+        
+        if (type === 'success') {
+          couponMessage.style.cssText = `
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            background-color: rgba(0, 178, 134, 0.1);
+            color: var(--theme-primary, #00b286);
+          `;
+          couponInput.value = '';
+        } else {
+          couponMessage.style.cssText = `
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+          `;
+        }
+      }
+
       // Apply button with spinner
       const applyButton = document.createElement('button');
+      applyButton.className = 'hmstudio-cart-coupon-apply';
       applyButton.type = 'button';
       applyButton.style.cssText = `
         padding: 8px 16px;
@@ -589,6 +612,7 @@
       });
 
       const spinner = document.createElement('div');
+      spinner.className = 'hmstudio-cart-coupon-spinner';
       spinner.style.cssText = `
         width: 16px;
         height: 16px;
@@ -600,6 +624,7 @@
       `;
 
       const buttonText = document.createElement('span');
+      buttonText.className = 'hmstudio-cart-coupon-button-text';
       buttonText.textContent = isArabic ? 'تطبيق' : 'Apply';
 
       applyButton.appendChild(spinner);
@@ -629,7 +654,6 @@
           }
         } catch (error) {
           console.error('Coupon error:', error);
-          // Check if the error has a response object with data
           const errorResponse = {
             data: { message: error.message || '' },
             status: 'error'
@@ -650,10 +674,10 @@
       couponForm.appendChild(inputContainer);
       couponForm.appendChild(couponMessage);
       couponSection.appendChild(couponForm);
-
       // Applied Coupon Display (if exists)
       if (cartData.coupon) {
         const appliedCouponContainer = document.createElement('div');
+        appliedCouponContainer.className = 'hmstudio-cart-applied-coupon';
         appliedCouponContainer.style.cssText = `
           margin-top: 10px;
           padding: 12px;
@@ -663,29 +687,33 @@
           justify-content: space-between;
           align-items: center;
         `;
-      
+
         const couponInfo = document.createElement('div');
+        couponInfo.className = 'hmstudio-cart-coupon-info';
         couponInfo.style.cssText = `
           display: flex;
           flex-direction: column;
           gap: 4px;
         `;
-      
+
         const couponTitle = document.createElement('span');
+        couponTitle.className = 'hmstudio-cart-coupon-title';
         couponTitle.textContent = isArabic ? 'القسيمة المطبقة:' : 'Applied Coupon:';
         couponTitle.style.cssText = `
           font-size: 0.8rem;
           color: #666;
         `;
-      
+
         const couponCode = document.createElement('span');
+        couponCode.className = 'hmstudio-cart-coupon-code';
         couponCode.textContent = cartData.coupon.code;
         couponCode.style.cssText = `
           font-weight: 500;
           color: var(--theme-primary, #00b286);
         `;
-      
+
         const removeButton = document.createElement('button');
+        removeButton.className = 'hmstudio-cart-coupon-remove';
         removeButton.innerHTML = '✕';
         removeButton.style.cssText = `
           border: none;
@@ -697,15 +725,15 @@
           opacity: 0.7;
           transition: opacity 0.3s;
         `;
-      
+
         removeButton.addEventListener('mouseover', () => {
           removeButton.style.opacity = '1';
         });
-      
+
         removeButton.addEventListener('mouseout', () => {
           removeButton.style.opacity = '0.7';
         });
-      
+
         removeButton.addEventListener('click', async (e) => {
           e.preventDefault();
           try {
@@ -715,13 +743,14 @@
             console.error('Error removing coupon:', error);
           }
         });
-      
+
         couponInfo.appendChild(couponTitle);
         couponInfo.appendChild(couponCode);
         appliedCouponContainer.appendChild(couponInfo);
         appliedCouponContainer.appendChild(removeButton);
         couponForm.appendChild(appliedCouponContainer);
       }
+
       // Calculate subtotal using original prices
       const originalSubtotal = cartData.products.reduce((acc, product) => {
         const originalPrice = product.gross_price || product.price;
@@ -730,6 +759,7 @@
 
       // Subtotal
       const subtotal = document.createElement('div');
+      subtotal.className = 'hmstudio-cart-subtotal';
       subtotal.style.cssText = `
         display: flex;
         justify-content: space-between;
@@ -774,6 +804,7 @@
       const totalDiscount = calculateTotalDiscount();
       if (totalDiscount > 0 || (cartData.coupon && cartData.coupon.discount_amount > 0)) {
         const discountInfo = document.createElement('div');
+        discountInfo.className = 'hmstudio-cart-discount-info';
         discountInfo.style.cssText = `
           display: flex;
           justify-content: space-between;
@@ -797,6 +828,7 @@
       // Tax information
       if (cartData.tax_percentage > 0) {
         const taxInfo = document.createElement('div');
+        taxInfo.className = 'hmstudio-cart-tax-info';
         taxInfo.style.cssText = `
           display: flex;
           justify-content: space-between;
@@ -821,6 +853,7 @@
 
       // Total
       const total = document.createElement('div');
+      total.className = 'hmstudio-cart-total';
       total.style.cssText = `
         display: flex;
         justify-content: space-between;
@@ -844,6 +877,7 @@
 
       // Checkout button
       const checkoutBtn = document.createElement('button');
+      checkoutBtn.className = 'hmstudio-cart-checkout-button';
       checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
       checkoutBtn.style.cssText = `
         width: 100%;
@@ -887,6 +921,7 @@
       
       if (!cartData.products || cartData.products.length === 0) {
         const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'hmstudio-cart-empty-message';
         emptyMessage.style.cssText = `
           text-align: center;
           padding: 40px 20px;
