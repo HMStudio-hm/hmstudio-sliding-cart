@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.0
+// HMStudio Sliding Cart v1.2.1
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -546,7 +546,7 @@
       }
 
       // Calculate and display discount if exists
-      if (cartData.products && cartData.products.some(product => product.net_sale_price_string && product.net_price_string !== product.net_sale_price_string)) {
+      if (cartData.products && cartData.products.some(product => product.gross_sale_price)) {
         const discountInfo = document.createElement('div');
         discountInfo.style.cssText = `
           display: flex;
@@ -556,15 +556,15 @@
           font-size: 0.9rem;
         `;
       
-        // Calculate total discount only for products that have a discount
+        // Calculate total discount only for products that have a gross_sale_price
         const totalDiscount = cartData.products.reduce((acc, product) => {
-          // Only calculate discount if the product has a sale price different from regular price
-          if (product.net_sale_price_string && product.net_price_string !== product.net_sale_price_string) {
-            const regularPrice = parseFloat(product.net_price_string.replace(/[^\d.]/g, ''));
-            const salePrice = parseFloat(product.net_sale_price_string.replace(/[^\d.]/g, ''));
+          // Check if this product has a sale price (discount)
+          if (product.gross_sale_price) {
+            const regularPrice = product.gross_price || 0;
+            const salePrice = product.gross_sale_price || regularPrice;
             return acc + ((regularPrice - salePrice) * product.quantity);
           }
-          return acc;
+          return acc;  // Return accumulator without change if no discount
         }, 0);
       
         if (totalDiscount > 0) {
