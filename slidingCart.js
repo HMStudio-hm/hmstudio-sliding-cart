@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.0
+// HMStudio Sliding Cart v1.1.1
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -34,7 +34,7 @@
     cartElement: null,
     isOpen: false,
 
-    async fetchSettings() {
+    fetchSettings: async function() {
       try {
         const response = await fetch(`https://europe-west3-hmstudio-85f42.cloudfunctions.net/getSlidingCartSettings?storeId=${storeId}`);
         if (!response.ok) {
@@ -49,7 +49,7 @@
       }
     },
 
-    createCartStructure() {
+    createCartStructure: function() {
       const currentLang = getCurrentLanguage();
       const isRTL = currentLang === 'ar';
 
@@ -159,7 +159,20 @@
       return this.cartElement;
     },
 
-    async updateItemQuantity(cartProductId, productId, newQuantity) {
+    fetchCartData: async function() {
+      try {
+        const response = await zid.store.cart.fetch();
+        if (response.status === 'success') {
+          return response.data.cart;
+        }
+        throw new Error('Failed to fetch cart data');
+      } catch (error) {
+        console.error('Error fetching cart:', error);
+        return null;
+      }
+    },
+
+    updateItemQuantity: async function(cartProductId, productId, newQuantity) {
       try {
         await zid.store.cart.updateProduct(cartProductId, newQuantity, productId);
         await this.updateCartDisplay();
@@ -168,7 +181,7 @@
       }
     },
 
-    async removeItem(cartProductId, productId) {
+    removeItem: async function(cartProductId, productId) {
       try {
         await zid.store.cart.removeProduct(cartProductId, productId);
         await this.updateCartDisplay();
@@ -176,8 +189,7 @@
         console.error('Error removing item:', error);
       }
     },
-
-    createCartItem(item, currentLang) {
+    createCartItem: function(item, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
 
@@ -298,7 +310,7 @@
           justify-content: center;
           border-radius: 4px;
         `;
-        btn.addEventListener('click', onClick);
+        btn.addEventListener('click', onClick.bind(this));
         return btn;
       };
 
@@ -349,7 +361,7 @@
       return itemElement;
     },
 
-    createFooterContent(cartData, currentLang) {
+    createFooterContent: function(cartData, currentLang) {
       const isArabic = currentLang === 'ar';
       const currencySymbol = ' ر.س ';
 
@@ -436,6 +448,7 @@
       applyButton.appendChild(spinner);
       applyButton.appendChild(buttonText);
 
+      const self = this; // Store reference to 'this'
       applyButton.addEventListener('click', async () => {
         const couponCode = couponInput.value.trim();
         if (!couponCode) return;
@@ -458,7 +471,7 @@
             couponMessage.textContent = isArabic ? 'تم تطبيق القسيمة بنجاح' : 'Coupon applied successfully';
             
             // Update cart display
-            this.updateCartDisplay();
+            self.updateCartDisplay();
           } else {
             // Show error message
             couponMessage.style.cssText = `
@@ -541,7 +554,7 @@
         `;
         removeButton.addEventListener('click', async () => {
           await zid.store.cart.removeCoupon();
-          this.updateCartDisplay();
+          self.updateCartDisplay();
         });
 
         couponInfo.appendChild(couponText);
@@ -575,7 +588,7 @@
       return footer;
     },
 
-    async updateCartDisplay() {
+    updateCartDisplay: async function() {
       const cartData = await this.fetchCartData();
       if (!cartData) return;
 
@@ -597,8 +610,8 @@
           : 'Your cart is empty';
         content.appendChild(emptyMessage);
         
-        // Hide footer when cart is empty
-        footer.style.display = 'none';
+       // Hide footer when cart is empty
+       footer.style.display = 'none';
       } else {
         cartData.products.forEach(item => {
           content.appendChild(this.createCartItem(item, currentLang));
@@ -611,7 +624,7 @@
       }
     },
 
-    openCart() {
+    openCart: function() {
       if (this.isOpen) return;
       
       const currentLang = getCurrentLanguage();
@@ -626,7 +639,7 @@
       this.updateCartDisplay();
     },
 
-    closeCart() {
+    closeCart: function() {
       if (!this.isOpen) return;
 
       this.cartElement.container.style.transform = 'translateX(0)';
@@ -636,16 +649,16 @@
       this.isOpen = false;
     },
 
-    handleCartUpdates() {
-      // Override the original cart add function to show sliding cart
+    handleCartUpdates: function() {
+      const self = this;  // Store reference to 'this'
       const originalAddProduct = zid.store.cart.addProduct;
-      zid.store.cart.addProduct = async (...args) => {
+      zid.store.cart.addProduct = async function(...args) {
         try {
           const result = await originalAddProduct.apply(zid.store.cart, args);
           if (result.status === 'success') {
             setTimeout(() => {
-              this.openCart();
-              this.updateCartDisplay();
+              self.openCart();
+              self.updateCartDisplay();
             }, 100);
           }
           return result;
@@ -656,18 +669,19 @@
       };
     },
 
-    setupCartButton() {
+    setupCartButton: function() {
+      const self = this;
       const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
       cartButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
+        button.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          this.openCart();
+          self.openCart();
         });
       });
     },
 
-    async initialize() {
+    initialize: async function() {
       console.log('Initializing Sliding Cart');
       
       // Fetch settings
@@ -685,8 +699,9 @@
       this.setupCartButton();
 
       // Setup mutation observer for dynamically added cart buttons
+      const self = this;
       const observer = new MutationObserver(() => {
-        this.setupCartButton();
+        self.setupCartButton();
       });
 
       observer.observe(document.body, {
@@ -700,8 +715,10 @@
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => SlidingCart.initialize());
+    document.addEventListener('DOMContentLoaded', () => {
+      SlidingCart.initialize.call(SlidingCart);
+    });
   } else {
-    SlidingCart.initialize();
+    SlidingCart.initialize.call(SlidingCart);
   }
 })();
