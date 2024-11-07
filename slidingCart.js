@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.2.5
+// HMStudio Sliding Cart v1.2.6
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -573,31 +573,37 @@
 
       // Calculate and display total discount (both from product discounts and coupon)
       const calculateTotalDiscount = () => {
-        // Start with product discounts
-        let totalDiscount = cartData.products.reduce((acc, product) => {
+        let totalDiscount = 0;
+      
+        // Calculate product discounts
+        cartData.products.forEach(product => {
           if (product.gross_sale_price && product.gross_sale_price !== product.gross_price) {
             const regularPrice = product.gross_price || 0;
             const salePrice = product.gross_sale_price || regularPrice;
-            return acc + ((regularPrice - salePrice) * product.quantity);
+            totalDiscount += ((regularPrice - salePrice) * product.quantity);
           }
-          return acc;
-        }, 0);
+        });
       
-        // Check and add coupon discount
-        const couponDiscountValue = cartData.coupon_discount ? parseFloat(cartData.coupon_discount) : 0;
-        
-        // If there's a coupon discount, add it to total discount
-        if (couponDiscountValue > 0) {
-          totalDiscount += couponDiscountValue;
+        // Calculate coupon discount
+        if (cartData.subtotal_before_coupon && cartData.total) {
+          const subtotalBeforeCoupon = parseFloat(cartData.subtotal_before_coupon);
+          const finalTotal = parseFloat(cartData.total.value);
+          const couponDiscount = subtotalBeforeCoupon - finalTotal;
+          if (couponDiscount > 0) {
+            totalDiscount += couponDiscount;
+          }
         }
       
         return totalDiscount;
       };
       
-      // Display discount if there's any (either from products or coupon)
-      const totalDiscount = calculateTotalDiscount();
-// Check if there's either a product discount or coupon discount
-if (totalDiscount > 0 || cartData.coupon_discount) {
+      // Show discount section if there's any kind of discount
+const totalDiscount = calculateTotalDiscount();
+console.log('Cart Data:', cartData); // Debug log
+console.log('Calculated Total Discount:', totalDiscount); // Debug log
+
+// Check if there's any discount (product or coupon)
+if (totalDiscount > 0 || cartData.coupon) {  // Changed condition to also check for coupon
   const discountInfo = document.createElement('div');
   discountInfo.style.cssText = `
     display: flex;
