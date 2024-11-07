@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.1.9
+// HMStudio Sliding Cart v1.2.0
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -546,7 +546,7 @@
       }
 
       // Calculate and display discount if exists
-      if (cartData.products && cartData.products.some(product => product.net_sale_price_string)) {
+      if (cartData.products && cartData.products.some(product => product.net_sale_price_string && product.net_price_string !== product.net_sale_price_string)) {
         const discountInfo = document.createElement('div');
         discountInfo.style.cssText = `
           display: flex;
@@ -555,24 +555,30 @@
           color: var(--theme-primary, #00b286);
           font-size: 0.9rem;
         `;
-
-        // Calculate total discount
+      
+        // Calculate total discount only for products that have a discount
         const totalDiscount = cartData.products.reduce((acc, product) => {
-          const regularPrice = parseFloat(product.net_price_string.replace(/[^\d.]/g, ''));
-          const salePrice = parseFloat(product.net_sale_price_string?.replace(/[^\d.]/g, '') || regularPrice);
-          return acc + ((regularPrice - salePrice) * product.quantity);
+          // Only calculate discount if the product has a sale price different from regular price
+          if (product.net_sale_price_string && product.net_price_string !== product.net_sale_price_string) {
+            const regularPrice = parseFloat(product.net_price_string.replace(/[^\d.]/g, ''));
+            const salePrice = parseFloat(product.net_sale_price_string.replace(/[^\d.]/g, ''));
+            return acc + ((regularPrice - salePrice) * product.quantity);
+          }
+          return acc;
         }, 0);
-
-        const formattedDiscount = isArabic
-          ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
-          : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
-
-        discountInfo.innerHTML = `
-          <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
-          <span>${formattedDiscount}</span>
-        `;
-
-        footer.appendChild(discountInfo);
+      
+        if (totalDiscount > 0) {
+          const formattedDiscount = isArabic
+            ? `${totalDiscount.toFixed(2)} ${currencySymbol}`
+            : `${currencySymbol} ${totalDiscount.toFixed(2)}`;
+      
+          discountInfo.innerHTML = `
+            <span>${isArabic ? 'قيمة الخصم:' : 'Discount:'}</span>
+            <span>${formattedDiscount}</span>
+          `;
+      
+          footer.appendChild(discountInfo);
+        }
       }
 
       // Subtotal
