@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.0
+// HMStudio Sliding Cart v1.3.1
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -454,30 +454,27 @@
         // Log the full response for debugging
         console.log('Coupon response:', response);
 
-        // Check the error message or code
-        const errorMessage = response.error?.toLowerCase() || '';
-        const errorCode = response.code?.toLowerCase() || '';
-
+        // Check the error message from the response data
+        const errorMessage = (response.data?.message || '').toLowerCase();
+        
         // Check for specific error conditions
-        if (errorMessage.includes('expired') || errorCode.includes('expired')) {
+        if (errorMessage.includes('expired')) {
           return 'expiredCoupon';
         }
         
-        if (errorMessage.includes('minimum') || errorCode.includes('minimum')) {
+        if (errorMessage.includes('minimum')) {
           return 'minimumNotMet';
         }
         
         if (
-          errorMessage.includes('eligible') || 
-          errorMessage.includes('not valid') || 
-          errorMessage.includes('not applicable') ||
-          errorMessage.includes('available') ||
-          errorCode.includes('product_not_eligible')
+          errorMessage.includes('السلة لا تحتوي أي منتج من المنتجات المشمولة') || // Arabic message for no eligible products
+          errorMessage.includes('not eligible') ||
+          errorMessage.includes('not applicable')
         ) {
           return 'productNotEligible';
         }
         
-        if (errorMessage.includes('used') || errorCode.includes('used')) {
+        if (errorMessage.includes('used')) {
           return 'alreadyUsed';
         }
 
@@ -608,7 +605,7 @@
 
         try {
           const response = await zid.store.cart.redeemCoupon(couponCode);
-          console.log('Coupon application response:', response); // Add this debug log
+          console.log('Coupon application response:', response);
           
           if (response.status === 'success') {
             showCouponMessage('success', isArabic);
@@ -619,13 +616,13 @@
           }
         } catch (error) {
           console.error('Coupon error:', error);
-          // If the error has response data, try to determine the specific error type
-          if (error.response) {
-            const errorType = getErrorType(error.response);
-            showCouponMessage(errorType, isArabic);
-          } else {
-            showCouponMessage('invalidCoupon', isArabic);
-          }
+          // Check if the error has a response object with data
+          const errorResponse = {
+            data: { message: error.message || '' },
+            status: 'error'
+          };
+          const errorType = getErrorType(errorResponse);
+          showCouponMessage(errorType, isArabic);
         } finally {
           // Hide spinner, enable input and button
           spinner.style.display = 'none';
