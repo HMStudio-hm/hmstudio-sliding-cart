@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.6
+// HMStudio Sliding Cart v1.3.7
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -903,22 +903,18 @@
      });
 
      checkoutBtn.addEventListener('click', () => {
-       // Find appropriate checkout link based on auth status
-       let checkoutLink = document.querySelector('a[href="/checkout/choose-address-and-shipping"]');
-       
-       // If user is not authenticated, use the guest checkout link
-       if (!checkoutLink || checkoutLink.style.display === 'none') {
-         checkoutLink = document.querySelector('a[zid-visible-guest="true"][href*="/auth/login?redirect_to=/checkout"]');
-       }
-
-       // If we found a valid link, simulate click on it
-       if (checkoutLink) {
-         checkoutLink.click();
-       } else {
-         // Fallback to direct navigation if no links found
-         window.location.href = '/checkout/choose-address-and-shipping';
-       }
-     });
+        // First try to find the direct checkout link (for authenticated users)
+        let checkoutLink = document.querySelector('a[href="/checkout/choose-address-and-shipping"]');
+        
+        if (!checkoutLink || checkoutLink.style.display === 'none') {
+          // User is not authenticated, create a custom URL that redirects directly to shipping
+          const redirectUrl = encodeURIComponent('/checkout/choose-address-and-shipping');
+          window.location.href = `/auth/login?redirect_to=${redirectUrl}`;
+        } else {
+          // User is authenticated, use the direct checkout link
+          checkoutLink.click();
+        }
+      });
 
      footer.appendChild(couponSection);
      footer.appendChild(checkoutBtn);
