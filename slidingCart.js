@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.5
+// HMStudio Sliding Cart v1.3.6
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -877,172 +877,217 @@
 
       footer.appendChild(total);
 
-      // Checkout button
-      const checkoutBtn = document.createElement('button');
-      checkoutBtn.className = 'hmstudio-cart-checkout-button';
-      checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
-      checkoutBtn.style.cssText = `
-        width: 100%;
-        padding: 15px;
-        background: var(--theme-primary, #00b286);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: opacity 0.3s;
-        margin-top: 15px;
-      `;
+     // Checkout button
+     const checkoutBtn = document.createElement('button');
+     checkoutBtn.className = 'hmstudio-cart-checkout-button';
+     checkoutBtn.textContent = isArabic ? 'إتمام الطلب' : 'Checkout';
+     checkoutBtn.style.cssText = `
+       width: 100%;
+       padding: 15px;
+       background: var(--theme-primary, #00b286);
+       color: white;
+       border: none;
+       border-radius: 4px;
+       font-weight: bold;
+       cursor: pointer;
+       transition: opacity 0.3s;
+       margin-top: 15px;
+     `;
 
-      checkoutBtn.addEventListener('mouseover', () => {
-        checkoutBtn.style.opacity = '0.9';
-      });
+     checkoutBtn.addEventListener('mouseover', () => {
+       checkoutBtn.style.opacity = '0.9';
+     });
 
-      checkoutBtn.addEventListener('mouseout', () => {
-        checkoutBtn.style.opacity = '1';
-      });
+     checkoutBtn.addEventListener('mouseout', () => {
+       checkoutBtn.style.opacity = '1';
+     });
 
-      checkoutBtn.addEventListener('click', () => {
-        window.location.href = '/auth/login?redirect_to=/checkout/choose-address-and-shipping';
-      });
+     checkoutBtn.addEventListener('click', () => {
+       // Find appropriate checkout link based on auth status
+       let checkoutLink = document.querySelector('a[href="/checkout/choose-address-and-shipping"]');
+       
+       // If user is not authenticated, use the guest checkout link
+       if (!checkoutLink || checkoutLink.style.display === 'none') {
+         checkoutLink = document.querySelector('a[zid-visible-guest="true"][href*="/auth/login?redirect_to=/checkout"]');
+       }
 
-      footer.appendChild(couponSection);
-      footer.appendChild(checkoutBtn);
+       // If we found a valid link, simulate click on it
+       if (checkoutLink) {
+         checkoutLink.click();
+       } else {
+         // Fallback to direct navigation if no links found
+         window.location.href = '/checkout/choose-address-and-shipping';
+       }
+     });
 
-      return footer;
-    },
-    updateCartDisplay: async function() {
-      const cartData = await this.fetchCartData();
-      if (!cartData) return;
+     footer.appendChild(couponSection);
+     footer.appendChild(checkoutBtn);
 
-      const currentLang = getCurrentLanguage();
-      const { content, footer } = this.cartElement;
+     return footer;
+   },
 
-      // Update content
-      content.innerHTML = '';
-      
-      if (!cartData.products || cartData.products.length === 0) {
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'hmstudio-cart-empty-message';
-        emptyMessage.style.cssText = `
-          text-align: center;
-          padding: 40px 20px;
-          color: rgba(0, 0, 0, 0.5);
-        `;
-        emptyMessage.textContent = currentLang === 'ar' 
-          ? 'سلة التسوق فارغة' 
-          : 'Your cart is empty';
-        content.appendChild(emptyMessage);
-        
-        // Hide footer when cart is empty
-        footer.style.display = 'none';
-      } else {
-        cartData.products.forEach(item => {
-          content.appendChild(this.createCartItem(item, currentLang));
-        });
-        
-        // Show and update footer when cart has items
-        footer.style.display = 'block';
-        footer.innerHTML = '';
-        footer.appendChild(this.createFooterContent(cartData, currentLang));
-      }
-    },
+   updateCartDisplay: async function() {
+     const cartData = await this.fetchCartData();
+     if (!cartData) return;
 
-    openCart: function() {
-      if (this.isOpen) return;
-      
-      const currentLang = getCurrentLanguage();
-      const isRTL = currentLang === 'ar';
-      
-      this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
-      this.cartElement.backdrop.style.opacity = '1';
-      this.cartElement.backdrop.style.visibility = 'visible';
-      document.body.style.overflow = 'hidden';
-      this.isOpen = true;
+     const currentLang = getCurrentLanguage();
+     const { content, footer } = this.cartElement;
 
-      this.updateCartDisplay();
-    },
+     // Update content
+     content.innerHTML = '';
+     
+     if (!cartData.products || cartData.products.length === 0) {
+       const emptyMessage = document.createElement('div');
+       emptyMessage.className = 'hmstudio-cart-empty-message';
+       emptyMessage.style.cssText = `
+         text-align: center;
+         padding: 40px 20px;
+         color: rgba(0, 0, 0, 0.5);
+       `;
+       emptyMessage.textContent = currentLang === 'ar' 
+         ? 'سلة التسوق فارغة' 
+         : 'Your cart is empty';
+       content.appendChild(emptyMessage);
+       
+       // Hide footer when cart is empty
+       footer.style.display = 'none';
+     } else {
+       cartData.products.forEach(item => {
+         content.appendChild(this.createCartItem(item, currentLang));
+       });
+       
+       // Show and update footer when cart has items
+       footer.style.display = 'block';
+       footer.innerHTML = '';
+       footer.appendChild(this.createFooterContent(cartData, currentLang));
+     }
+   },
 
-    closeCart: function() {
-      if (!this.isOpen) return;
+   openCart: function() {
+     if (this.isOpen) return;
+     
+     const currentLang = getCurrentLanguage();
+     const isRTL = currentLang === 'ar';
+     
+     this.cartElement.container.style.transform = `translateX(${isRTL ? '100%' : '-100%'})`;
+     this.cartElement.backdrop.style.opacity = '1';
+     this.cartElement.backdrop.style.visibility = 'visible';
+     document.body.style.overflow = 'hidden';
+     this.isOpen = true;
 
-      this.cartElement.container.style.transform = 'translateX(0)';
-      this.cartElement.backdrop.style.opacity = '0';
-      this.cartElement.backdrop.style.visibility = 'hidden';
-      document.body.style.overflow = '';
-      this.isOpen = false;
-    },
+     this.updateCartDisplay();
+   },
 
-    handleCartUpdates: function() {
-      const self = this;
-      const originalAddProduct = zid.store.cart.addProduct;
-      zid.store.cart.addProduct = async function(...args) {
-        try {
-          const result = await originalAddProduct.apply(zid.store.cart, args);
-          if (result.status === 'success') {
-            setTimeout(() => {
-              self.openCart();
-              self.updateCartDisplay();
-            }, 100);
-          }
-          return result;
-        } catch (error) {
-          console.error('Error in cart add:', error);
-          throw error;
-        }
-      };
-    },
+   closeCart: function() {
+     if (!this.isOpen) return;
 
-    setupCartButton: function() {
-      const self = this;
-      const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
-      cartButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          self.openCart();
-        });
-      });
-    },
+     this.cartElement.container.style.transform = 'translateX(0)';
+     this.cartElement.backdrop.style.opacity = '0';
+     this.cartElement.backdrop.style.visibility = 'hidden';
+     document.body.style.overflow = '';
+     this.isOpen = false;
+   },
 
-    initialize: async function() {
-      console.log('Initializing Sliding Cart');
-      
-      // Fetch settings
-      const settings = await this.fetchSettings();
-      if (!settings?.enabled) {
-        console.log('Sliding Cart is disabled');
-        return;
-      }
+   handleCartUpdates: function() {
+     const self = this;
+     
+     // Check if zid object exists
+     if (typeof zid === 'undefined' || !zid.store || !zid.store.cart) {
+       console.error('Zid store object not found. Waiting for it to be available...');
+       
+       // Wait for zid object to be available
+       const checkZid = setInterval(() => {
+         if (typeof zid !== 'undefined' && zid.store && zid.store.cart) {
+           clearInterval(checkZid);
+           initializeCartHandler();
+         }
+       }, 100);
 
-      // Create cart structure
-      this.createCartStructure();
+       return;
+     }
 
-      // Setup cart functionality
-      this.handleCartUpdates();
-      this.setupCartButton();
+     initializeCartHandler();
 
-      // Setup mutation observer for dynamically added cart buttons
-      const self = this;
-      const observer = new MutationObserver(() => {
-        self.setupCartButton();
-      });
+     function initializeCartHandler() {
+       const originalAddProduct = zid.store.cart.addProduct;
+       zid.store.cart.addProduct = async function(...args) {
+         try {
+           const result = await originalAddProduct.apply(zid.store.cart, args);
+           if (result.status === 'success') {
+             setTimeout(() => {
+               self.openCart();
+               self.updateCartDisplay();
+             }, 100);
+           }
+           return result;
+         } catch (error) {
+           console.error('Error in cart add:', error);
+           throw error;
+         }
+       };
+     }
+   },
 
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+   setupCartButton: function() {
+     const self = this;
+     const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
+     cartButtons.forEach(button => {
+       button.addEventListener('click', function(e) {
+         e.preventDefault();
+         e.stopPropagation();
+         self.openCart();
+       });
+     });
+   },
 
-      console.log('Sliding Cart initialized successfully');
-    }
-  };
+   initialize: async function() {
+     console.log('Initializing Sliding Cart');
+     
+     // Fetch settings
+     const settings = await this.fetchSettings();
+     if (!settings?.enabled) {
+       console.log('Sliding Cart is disabled');
+       return;
+     }
 
-  // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      SlidingCart.initialize.call(SlidingCart);
-    });
-  } else {
-    SlidingCart.initialize.call(SlidingCart);
-  }
+     // Create cart structure
+     this.createCartStructure();
+
+     // Wait for document and zid to be ready
+     const waitForZid = () => {
+       if (typeof zid !== 'undefined' && zid.store && zid.store.cart) {
+         // Setup cart functionality
+         this.handleCartUpdates();
+         this.setupCartButton();
+         
+         // Setup mutation observer for dynamically added cart buttons
+         const self = this;
+         const observer = new MutationObserver(() => {
+           self.setupCartButton();
+         });
+
+         observer.observe(document.body, {
+           childList: true,
+           subtree: true
+         });
+
+         console.log('Sliding Cart initialized successfully');
+       } else {
+         // If zid is not ready, wait and try again
+         setTimeout(waitForZid, 100);
+       }
+     };
+
+     waitForZid();
+   }
+ };
+
+ // Initialize when DOM is ready
+ if (document.readyState === 'loading') {
+   document.addEventListener('DOMContentLoaded', () => {
+     SlidingCart.initialize.call(SlidingCart);
+   });
+ } else {
+   SlidingCart.initialize.call(SlidingCart);
+ }
 })();
