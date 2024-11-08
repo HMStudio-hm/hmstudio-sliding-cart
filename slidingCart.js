@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.4
+// HMStudio Sliding Cart v1.3.5
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -449,6 +449,8 @@
         
         // Check for specific error conditions with their Arabic messages
         if (
+          errorMessage.includes('فترة إستخدام الكوبون لم تبدأ بعد أو أنها انتهت') ||  // New expired message
+          errorMessage.includes('لم تبدأ بعد أو أنها انتهت') ||  // Partial match
           errorMessage.includes('منتهية الصلاحية') ||
           errorMessage.includes('expired')
         ) {
