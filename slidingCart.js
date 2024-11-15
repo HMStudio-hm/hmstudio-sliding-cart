@@ -1,5 +1,5 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.7
+// HMStudio Sliding Cart v1.3.8
 
 (function() {
   console.log('Sliding Cart script initialized');
@@ -1026,6 +1026,15 @@
 
    setupCartButton: function() {
      const self = this;
+     // Add event listener to the parent header-cart div
+  const headerCart = document.querySelector('.header-cart');
+  if (headerCart) {
+    headerCart.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      self.openCart();
+    });
+  }
      const cartButtons = document.querySelectorAll('.a-shopping-cart, .a-shopping-cart');
      cartButtons.forEach(button => {
        button.addEventListener('click', function(e) {
