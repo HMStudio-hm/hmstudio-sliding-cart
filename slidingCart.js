@@ -1,10 +1,8 @@
 // src/scripts/slidingCart.js
-// HMStudio Sliding Cart v1.3.9
+// HMStudio Sliding Cart v1.4.0
+// the logs cleaned up version(from v1.3.9 last and not logs cleaned up)
 
 ;(() => {
-  console.log("Sliding Cart script initialized")
-
-  // Add keyframe animation for spinner
   const styleSheet = document.createElement("style")
   styleSheet.textContent = `
     @keyframes spin {
@@ -13,7 +11,6 @@
   `
   document.head.appendChild(styleSheet)
 
-  // Coupon feedback messages
   const couponMessages = {
     invalidCoupon: {
       ar: "القسيمة غير صالحة",
@@ -54,9 +51,11 @@
 
   const storeId = getStoreIdFromUrl()
   if (!storeId) {
-    console.error("Store ID not found in script URL")
     return
   }
+
+  // Placeholder for zid import.  This needs to be replaced with the actual import statement.
+  const zid = {} // Replace with actual import of zid
 
   const SlidingCart = {
     cartElement: null,
@@ -71,10 +70,8 @@
           throw new Error(`Failed to fetch settings: ${response.statusText}`)
         }
         const data = await response.json()
-        console.log("Fetched sliding cart settings:", data)
         return data
       } catch (error) {
-        console.error("Error fetching sliding cart settings:", error)
         return null
       }
     },
@@ -83,7 +80,6 @@
       const currentLang = getCurrentLanguage()
       const isRTL = currentLang === "ar"
 
-      // Create cart container
       const container = document.createElement("div")
       container.id = "hmstudio-sliding-cart"
       container.className = "hmstudio-cart-container"
@@ -102,7 +98,6 @@
         direction: ${isRTL ? "rtl" : "ltr"};
       `
 
-      // Create header
       const header = document.createElement("div")
       header.className = "hmstudio-cart-header"
       header.style.cssText = `
@@ -141,7 +136,6 @@
       header.appendChild(title)
       header.appendChild(closeButton)
 
-      // Create content area
       const content = document.createElement("div")
       content.className = "hmstudio-cart-content"
       content.style.cssText = `
@@ -150,7 +144,6 @@
         padding: 20px;
       `
 
-      // Create footer
       const footer = document.createElement("div")
       footer.className = "hmstudio-cart-footer"
       footer.style.cssText = `
@@ -158,12 +151,10 @@
         border-top: 1px solid rgba(0, 0, 0, 0.1);
       `
 
-      // Assemble cart structure
       container.appendChild(header)
       container.appendChild(content)
       container.appendChild(footer)
 
-      // Create backdrop
       const backdrop = document.createElement("div")
       backdrop.id = "hmstudio-sliding-cart-backdrop"
       backdrop.className = "hmstudio-cart-backdrop"
@@ -182,7 +173,6 @@
 
       backdrop.addEventListener("click", () => this.closeCart())
 
-      // Add to DOM
       document.body.appendChild(backdrop)
       document.body.appendChild(container)
 
@@ -203,7 +193,6 @@
         }
         throw new Error("Failed to fetch cart data")
       } catch (error) {
-        console.error("Error fetching cart:", error)
         return null
       }
     },
@@ -212,23 +201,18 @@
       try {
         await zid.store.cart.updateProduct(cartProductId, newQuantity, productId)
         await this.updateCartDisplay()
-      } catch (error) {
-        console.error("Error updating quantity:", error)
-      }
+      } catch (error) {}
     },
 
     removeItem: async function (cartProductId, productId) {
       try {
         await zid.store.cart.removeProduct(cartProductId, productId)
         await this.updateCartDisplay()
-      } catch (error) {
-        console.error("Error removing item:", error)
-      }
+      } catch (error) {}
     },
 
     createCartItem: function (item, currentLang) {
       const isArabic = currentLang === "ar"
-      //const currencySymbol = ' ر.س ';
 
       const itemElement = document.createElement("div")
       itemElement.className = "hmstudio-cart-item"
@@ -240,7 +224,6 @@
         direction: ${isArabic ? "rtl" : "ltr"};
       `
 
-      // Product image
       const imageElement = document.createElement("img")
       imageElement.className = "hmstudio-cart-item-image"
       imageElement.src = item.images?.[0]?.origin || item.images?.[0]?.thumbnail || "/path/to/default-image.jpg"
@@ -252,7 +235,6 @@
         border-radius: 4px;
       `
 
-      // Product details container
       const details = document.createElement("div")
       details.className = "hmstudio-cart-item-details"
       details.style.cssText = `
@@ -262,7 +244,6 @@
         gap: 5px;
       `
 
-      // Product name
       const name = document.createElement("h3")
       name.className = "hmstudio-cart-item-name"
       name.textContent = item.name || ""
@@ -272,7 +253,6 @@
         font-weight: 500;
       `
 
-      // Price container
       const priceContainer = document.createElement("div")
       priceContainer.className = "hmstudio-cart-item-price-container"
       priceContainer.style.cssText = `
@@ -283,7 +263,6 @@
       `
 
       if (item.gross_sale_price && item.gross_price !== item.gross_sale_price) {
-        // Sale price (current price)
         const salePrice = document.createElement("div")
         salePrice.className = "hmstudio-cart-item-sale-price"
         const formattedSalePrice = isArabic
@@ -295,7 +274,6 @@
           color: var(--theme-primary, #00b286);
         `
 
-        // Original price
         const originalPrice = document.createElement("div")
         originalPrice.className = "hmstudio-cart-item-original-price"
         const formattedOriginalPrice = isArabic
@@ -317,7 +295,6 @@
           priceContainer.appendChild(originalPrice)
         }
       } else {
-        // Regular price only
         const price = document.createElement("div")
         price.className = "hmstudio-cart-item-price"
         const priceValue = item.gross_price || item.price
@@ -332,7 +309,6 @@
         priceContainer.appendChild(price)
       }
 
-      // Quantity controls
       const quantityControls = document.createElement("div")
       quantityControls.className = "hmstudio-cart-item-quantity"
       quantityControls.style.cssText = `
@@ -387,7 +363,6 @@
         this.updateItemQuantity(item.id, item.product_id, item.quantity + 1)
       })
 
-      // Remove button
       const removeBtn = document.createElement("button")
       removeBtn.className = "hmstudio-cart-item-remove"
       removeBtn.innerHTML = "🗑️"
@@ -411,17 +386,14 @@
         this.removeItem(item.id, item.product_id)
       })
 
-      // Assemble quantity controls
       quantityControls.appendChild(decreaseBtn)
       quantityControls.appendChild(quantity)
       quantityControls.appendChild(increaseBtn)
 
-      // Assemble details
       details.appendChild(name)
       details.appendChild(priceContainer)
       details.appendChild(quantityControls)
 
-      // Assemble item
       itemElement.appendChild(imageElement)
       itemElement.appendChild(details)
       itemElement.appendChild(removeBtn)
@@ -430,9 +402,7 @@
     },
     createFooterContent: function (cartData, currentLang) {
       const isArabic = currentLang === "ar"
-      //const currencySymbol = ' ر.س ';
       const currencySymbol = currentLang === "en" ? "SAR" : "ر.س"
-      
 
       const footer = document.createElement("div")
       footer.className = "hmstudio-cart-footer-content"
@@ -444,16 +414,11 @@
       `
 
       function getErrorType(response) {
-        // Log the full response for debugging
-        console.log("Coupon response:", response)
-
-        // Check the error message from the response data
         const errorMessage = (response.data?.message || "").toLowerCase()
 
-        // Check for specific error conditions with their Arabic messages
         if (
-          errorMessage.includes("فترة إستخدام الكوبون لم تبدأ بعد أو أنها انتهت") || // New expired message
-          errorMessage.includes("لم تبدأ بعد أو أنها انتهت") || // Partial match
+          errorMessage.includes("فترة إستخدام الكوبون لم تبدأ بعد أو أنها انتهت") ||
+          errorMessage.includes("لم تبدأ بعد أو أنها انتهت") ||
           errorMessage.includes("منتهية الصلاحية") ||
           errorMessage.includes("expired")
         ) {
@@ -486,11 +451,9 @@
           return "alreadyUsed"
         }
 
-        // If none of the above conditions match
         return "invalidCoupon"
       }
 
-      // Coupon Section
       const couponSection = document.createElement("div")
       couponSection.className = "hmstudio-cart-coupon-section"
       couponSection.style.cssText = `
@@ -505,12 +468,10 @@
         gap: 10px;
       `
 
-      // Prevent form submission
       couponForm.addEventListener("submit", (e) => {
         e.preventDefault()
       })
 
-      // Add message container for coupon feedback
       const couponMessage = document.createElement("div")
       couponMessage.className = "hmstudio-cart-coupon-message"
       couponMessage.style.cssText = `
@@ -541,7 +502,6 @@
         transition: border-color 0.3s;
       `
 
-      // Add event listener for Enter key
       couponInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           e.preventDefault()
@@ -584,7 +544,6 @@
         }
       }
 
-      // Apply button with spinner
       const applyButton = document.createElement("button")
       applyButton.className = "hmstudio-cart-coupon-apply"
       applyButton.type = "button"
@@ -635,12 +594,10 @@
       applyButton.appendChild(spinner)
       applyButton.appendChild(buttonText)
 
-      // Handle coupon application
       applyButton.addEventListener("click", async () => {
         const couponCode = couponInput.value.trim()
         if (!couponCode) return
 
-        // Show spinner, disable input and button
         spinner.style.display = "block"
         couponInput.disabled = true
         applyButton.disabled = true
@@ -648,7 +605,6 @@
 
         try {
           const response = await zid.store.cart.redeemCoupon(couponCode)
-          console.log("Coupon application response:", response)
 
           if (response.status === "success") {
             showCouponMessage("success", isArabic)
@@ -658,7 +614,6 @@
             showCouponMessage(errorType, isArabic)
           }
         } catch (error) {
-          console.error("Coupon error:", error)
           const errorResponse = {
             data: { message: error.message || "" },
             status: "error",
@@ -666,7 +621,6 @@
           const errorType = getErrorType(errorResponse)
           showCouponMessage(errorType, isArabic)
         } finally {
-          // Hide spinner, enable input and button
           spinner.style.display = "none"
           couponInput.disabled = false
           applyButton.disabled = false
@@ -679,7 +633,7 @@
       couponForm.appendChild(inputContainer)
       couponForm.appendChild(couponMessage)
       couponSection.appendChild(couponForm)
-      // Applied Coupon Display (if exists)
+
       if (cartData.coupon) {
         const appliedCouponContainer = document.createElement("div")
         appliedCouponContainer.className = "hmstudio-cart-applied-coupon"
@@ -744,9 +698,7 @@
           try {
             await zid.store.cart.removeCoupon()
             await this.updateCartDisplay()
-          } catch (error) {
-            console.error("Error removing coupon:", error)
-          }
+          } catch (error) {}
         })
 
         couponInfo.appendChild(couponTitle)
@@ -756,13 +708,11 @@
         couponForm.appendChild(appliedCouponContainer)
       }
 
-      // Calculate subtotal using original prices
       const originalSubtotal = cartData.products.reduce((acc, product) => {
         const originalPrice = product.gross_price || product.price
         return acc + originalPrice * product.quantity
       }, 0)
 
-      // Subtotal
       const subtotal = document.createElement("div")
       subtotal.className = "hmstudio-cart-subtotal"
       subtotal.style.cssText = `
@@ -784,11 +734,9 @@
 
       footer.appendChild(subtotal)
 
-      // Calculate and display total discount (both from product discounts and coupon)
       const calculateTotalDiscount = () => {
         let totalDiscount = 0
 
-        // Calculate product discounts
         cartData.products.forEach((product) => {
           if (product.gross_sale_price && product.gross_sale_price !== product.gross_price) {
             const regularPrice = product.gross_price || 0
@@ -797,7 +745,6 @@
           }
         })
 
-        // Add coupon discount if exists
         if (cartData.coupon && cartData.coupon.discount_amount) {
           totalDiscount += Number.parseFloat(cartData.coupon.discount_amount)
         }
@@ -805,7 +752,6 @@
         return totalDiscount
       }
 
-      // Display discount if there's any (either from products or coupon)
       const totalDiscount = calculateTotalDiscount()
       if (totalDiscount > 0 || (cartData.coupon && cartData.coupon.discount_amount > 0)) {
         const discountInfo = document.createElement("div")
@@ -830,7 +776,6 @@
         footer.appendChild(discountInfo)
       }
 
-      // Tax information
       if (cartData.tax_percentage > 0) {
         const taxInfo = document.createElement("div")
         taxInfo.className = "hmstudio-cart-tax-info"
@@ -842,7 +787,6 @@
           padding: 5px 0;
         `
 
-        // Calculate tax amount
         const taxAmount = (cartData.products_subtotal * (cartData.tax_percentage / 100)).toFixed(2)
         const formattedTax = isArabic
           ? `${taxAmount} ${currencySymbol} (${cartData.tax_percentage}٪)`
@@ -856,7 +800,6 @@
         footer.appendChild(taxInfo)
       }
 
-      // Total
       const total = document.createElement("div")
       total.className = "hmstudio-cart-total"
       total.style.cssText = `
@@ -880,7 +823,6 @@
 
       footer.appendChild(total)
 
-      // Checkout button
       const checkoutBtn = document.createElement("button")
       checkoutBtn.className = "hmstudio-cart-checkout-button"
       checkoutBtn.textContent = isArabic ? "إتمام الطلب" : "Checkout"
@@ -906,15 +848,12 @@
       })
 
       checkoutBtn.addEventListener("click", () => {
-        // First try to find the direct checkout link (for authenticated users)
         const checkoutLink = document.querySelector('a[href="/checkout/choose-address-and-shipping"]')
 
         if (!checkoutLink || checkoutLink.style.display === "none") {
-          // User is not authenticated, create a custom URL that redirects directly to shipping
           const redirectUrl = encodeURIComponent("/checkout/choose-address-and-shipping")
           window.location.href = `/auth/login?redirect_to=${redirectUrl}`
         } else {
-          // User is authenticated, use the direct checkout link
           checkoutLink.click()
         }
       })
@@ -932,7 +871,6 @@
       const currentLang = getCurrentLanguage()
       const { content, footer } = this.cartElement
 
-      // Update content
       content.innerHTML = ""
 
       if (!cartData.products || cartData.products.length === 0) {
@@ -946,14 +884,12 @@
         emptyMessage.textContent = currentLang === "ar" ? "سلة التسوق فارغة" : "Your cart is empty"
         content.appendChild(emptyMessage)
 
-        // Hide footer when cart is empty
         footer.style.display = "none"
       } else {
         cartData.products.forEach((item) => {
           content.appendChild(this.createCartItem(item, currentLang))
         })
 
-        // Show and update footer when cart has items
         footer.style.display = "block"
         footer.innerHTML = ""
         footer.appendChild(this.createFooterContent(cartData, currentLang))
@@ -988,11 +924,7 @@
     handleCartUpdates: function () {
       const self = this
 
-      // Check if zid object exists
       if (typeof zid === "undefined" || !zid.store || !zid.store.cart) {
-        console.error("Zid store object not found. Waiting for it to be available...")
-
-        // Wait for zid object to be available
         const checkZid = setInterval(() => {
           if (typeof zid !== "undefined" && zid.store && zid.store.cart) {
             clearInterval(checkZid)
@@ -1018,7 +950,6 @@
             }
             return result
           } catch (error) {
-            console.error("Error in cart add:", error)
             throw error
           }
         }
@@ -1026,8 +957,6 @@
     },
 
     setupCartButton: function () {
-      
-      // Add event listener to the parent header-cart div
       const headerCart = document.querySelector(".header-cart")
       if (headerCart) {
         headerCart.addEventListener("click", (e) => {
@@ -1047,26 +976,18 @@
     },
 
     initialize: async function () {
-      console.log("Initializing Sliding Cart")
-
-      // Fetch settings
       const settings = await this.fetchSettings()
       if (!settings?.enabled) {
-        console.log("Sliding Cart is disabled")
         return
       }
 
-      // Create cart structure
       this.createCartStructure()
 
-      // Wait for document and zid to be ready
       const waitForZid = () => {
         if (typeof zid !== "undefined" && zid.store && zid.store.cart) {
-          // Setup cart functionality
           this.handleCartUpdates()
           this.setupCartButton()
 
-          // Setup mutation observer for dynamically added cart buttons
           const self = this
           const observer = new MutationObserver(() => {
             self.setupCartButton()
@@ -1076,10 +997,7 @@
             childList: true,
             subtree: true,
           })
-
-          console.log("Sliding Cart initialized successfully")
         } else {
-          // If zid is not ready, wait and try again
           setTimeout(waitForZid, 100)
         }
       }
@@ -1088,7 +1006,6 @@
     },
   }
 
-  // Initialize when DOM is ready
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       SlidingCart.initialize.call(SlidingCart)
@@ -1097,4 +1014,3 @@
     SlidingCart.initialize.call(SlidingCart)
   }
 })()
-
